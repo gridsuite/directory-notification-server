@@ -79,19 +79,16 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     private void setUpUriComponentBuilder(String connectedUserId) {
-        setUpUriComponentBuilder(connectedUserId, null, null);
+        setUpUriComponentBuilder(connectedUserId, null);
     }
 
-    private void setUpUriComponentBuilder(String connectedUserId, String filterStudyUuid, String filterUpdateType) {
+    private void setUpUriComponentBuilder(String connectedUserId, String filterUpdateType) {
         UriComponentsBuilder uriComponentBuilder = UriComponentsBuilder.fromUriString("http://localhost:1234/notify");
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HEADER_USER_ID, connectedUserId);
         when(handshakeinfo.getHeaders()).thenReturn(httpHeaders);
 
-        if (filterStudyUuid != null) {
-            uriComponentBuilder.queryParam(QUERY_STUDY_UUID, filterStudyUuid);
-        }
         if (filterUpdateType != null) {
             uriComponentBuilder.queryParam(QUERY_UPDATE_TYPE, filterUpdateType);
         }
@@ -99,10 +96,10 @@ public class DirectoryNotificationWebSocketHandlerTest {
         when(handshakeinfo.getUri()).thenReturn(uriComponentBuilder.build().toUri());
     }
 
-    private void withFilters(String filterStudyUuid, String filterUpdateType) {
+    private void withFilters(String filterUpdateType) {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
-        setUpUriComponentBuilder(connectedUserId, filterStudyUuid, filterUpdateType);
+        setUpUriComponentBuilder(connectedUserId, filterUpdateType);
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(objectMapper, Integer.MAX_VALUE);
         var atomicRef = new AtomicReference<FluxSink<Message<String>>>();
@@ -112,25 +109,25 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.handle(ws);
 
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
-                Map.of(HEADER_STUDY_UUID, "foo", HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_STUDY_UUID, "bar", HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_STUDY_UUID, "baz", HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_STUDY_UUID, "foo", HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_STUDY_UUID, "bar", HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_STUDY_UUID, "baz", HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_STUDY_UUID, "foo", HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_STUDY_UUID, "bar", HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_STUDY_UUID, "baz", HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
 
-                Map.of(HEADER_STUDY_UUID, "foo bar/bar", HEADER_UPDATE_TYPE, "foobar"),
-                Map.of(HEADER_STUDY_UUID, "bar", HEADER_UPDATE_TYPE, "studies", HEADER_ERROR, "error_message"),
-                Map.of(HEADER_STUDY_UUID, "bar", HEADER_UPDATE_TYPE, "rab", HEADER_SUBSTATIONS_IDS, "s1"),
+                Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_UPDATE_TYPE, "studies", HEADER_ERROR, "error_message"),
 
-                Map.of(HEADER_STUDY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_STUDY, true),
-                Map.of(HEADER_STUDY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_STUDY, false),
-                Map.of(HEADER_STUDY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_STUDY, true),
-                Map.of(HEADER_STUDY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_STUDY, false),
-                Map.of(HEADER_STUDY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_STUDY, true, HEADER_ERROR, "error_message"))
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"))
                 .map(map -> new GenericMessage<>("", map))
                 .collect(Collectors.toList());
 
@@ -144,14 +141,12 @@ public class DirectoryNotificationWebSocketHandlerTest {
 
         List<Map<String, Object>> expected = refMessages.stream()
                 .filter(m -> {
-                    String studyUuid = (String) m.getHeaders().get(HEADER_STUDY_UUID);
+                    String directoryUuid = (String) m.getHeaders().get(HEADER_DIRECTORY_UUID);
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
-                    Boolean headerIsPublicStudy = m.getHeaders().get(HEADER_IS_PUBLIC_STUDY, Boolean.class);
+                    Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     String headerMessageError = (String) m.getHeaders().get(HEADER_ERROR);
-                    return (headerMessageError == null || connectedUserId.equals(userId))
-                            && (headerIsPublicStudy == null || headerIsPublicStudy || connectedUserId.equals(userId))
-                            && (filterStudyUuid == null || filterStudyUuid.equals(studyUuid))
+                    return  (connectedUserId.equals(userId) || (headerIsPublicDirectory != null && headerIsPublicDirectory))
                             && (filterUpdateType == null || filterUpdateType.equals(updateType));
                 })
                 .map(GenericMessage::getHeaders)
@@ -167,8 +162,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }).collect(Collectors.toList());
         assertEquals(expected, actual);
         assertNotEquals(0, actual.size());
-        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_STUDY_UUID).equals("private_" + otherUserId)).count());
-        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_STUDY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
+        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("private_" + otherUserId)).count());
+        assertNotEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
     }
 
     private Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
@@ -176,17 +171,14 @@ public class DirectoryNotificationWebSocketHandlerTest {
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
 
-        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
-            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
-        }
-        if (messageHeader.get(HEADER_STUDY_NAME) != null) {
-            resHeader.put(HEADER_STUDY_NAME, messageHeader.get(HEADER_STUDY_NAME));
+        if (messageHeader.get(HEADER_DIRECTORY_UUID) != null) {
+            resHeader.put(HEADER_DIRECTORY_UUID, messageHeader.get(HEADER_DIRECTORY_UUID));
         }
         if (messageHeader.get(HEADER_ERROR) != null) {
             resHeader.put(HEADER_ERROR, messageHeader.get(HEADER_ERROR));
         }
-        if (messageHeader.get(HEADER_SUBSTATIONS_IDS) != null) {
-            resHeader.put(HEADER_SUBSTATIONS_IDS, messageHeader.get(HEADER_SUBSTATIONS_IDS));
+        if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
+            resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
         }
 
         resHeader.remove(HEADER_TIMESTAMP);
@@ -196,27 +188,27 @@ public class DirectoryNotificationWebSocketHandlerTest {
 
     @Test
     public void testWithoutFilter() {
-        withFilters(null, null);
+        withFilters(null);
     }
 
     @Test
     public void testStudyFilter() {
-        withFilters("bar", null);
+        withFilters(null);
     }
 
     @Test
     public void testTypeFilter() {
-        withFilters(null, "rab");
+        withFilters("rab");
     }
 
     @Test
     public void testStudyAndTypeFilter() {
-        withFilters("bar", "rab");
+        withFilters("rab");
     }
 
     @Test
     public void testEncodingCharacters() {
-        withFilters("foo bar/bar", "foobar");
+        withFilters("foobar");
     }
 
     @Test
@@ -243,7 +235,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         var flux = Flux.create(atomicRef::set);
         notificationWebSocketHandler.consumeNotification().accept(flux);
         var sink = atomicRef.get();
-        Map<String, Object> headers = Map.of(HEADER_STUDY_UUID, "foo", HEADER_UPDATE_TYPE, "oof");
+        Map<String, Object> headers = Map.of(HEADER_UPDATE_TYPE, "oof");
 
         sink.next(new GenericMessage<>("", headers)); // should be discarded, no client connected
 

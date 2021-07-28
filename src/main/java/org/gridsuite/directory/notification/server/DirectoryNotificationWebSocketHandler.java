@@ -6,8 +6,6 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
@@ -49,16 +47,14 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(DirectoryNotificationWebSocketHandler.class);
     private static final String CATEGORY_BROKER_INPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.input-broker";
     private static final String CATEGORY_WS_OUTPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.output-websocket";
-    static final String QUERY_STUDY_UUID = "studyUuid";
     static final String QUERY_UPDATE_TYPE = "updateType";
     static final String HEADER_USER_ID = "userId";
-    static final String HEADER_STUDY_UUID = "studyUuid";
-    static final String HEADER_IS_PUBLIC_STUDY = "isPublicStudy";
-    static final String HEADER_STUDY_NAME = "studyName";
+    static final String HEADER_DIRECTORY_UUID = "directoryUuid";
+    static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
     static final String HEADER_UPDATE_TYPE = "updateType";
     static final String HEADER_TIMESTAMP = "timestamp";
     static final String HEADER_ERROR = "error";
-    static final String HEADER_SUBSTATIONS_IDS = "substationsIds";
+    static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -89,19 +85,14 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
      */
     private Flux<WebSocketMessage> notificationFlux(WebSocketSession webSocketSession,
                                                     String userId,
-                                                    String filterStudyUuid,
                                                     String filterUpdateType) {
         return flux.transform(f -> {
             Flux<Message<String>> res = f;
             if (userId != null) {
                 res = res.filter(m -> {
-                    var headerIsPublicStudy = m.getHeaders().get(HEADER_IS_PUBLIC_STUDY, Boolean.class);
-                    return (m.getHeaders().get(HEADER_ERROR) == null || userId.equals(m.getHeaders().get(HEADER_USER_ID))) &&
-                            (headerIsPublicStudy == null || headerIsPublicStudy || userId.equals(m.getHeaders().get(HEADER_USER_ID)));
+                    var headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
+                    return userId.equals(m.getHeaders().get(HEADER_USER_ID)) || (headerIsPublicDirectory != null && headerIsPublicDirectory);
                 });
-            }
-            if (filterStudyUuid != null) {
-                res = res.filter(m -> filterStudyUuid.equals(m.getHeaders().get(HEADER_STUDY_UUID)));
             }
             if (filterUpdateType != null) {
                 res = res.filter(m -> filterUpdateType.equals(m.getHeaders().get(HEADER_UPDATE_TYPE)));
@@ -123,19 +114,14 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
 
-        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
-            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
+        if (messageHeader.get(HEADER_DIRECTORY_UUID) != null) {
+            resHeader.put(HEADER_DIRECTORY_UUID, messageHeader.get(HEADER_DIRECTORY_UUID));
         }
-
-        if (messageHeader.get(HEADER_STUDY_NAME) != null) {
-            resHeader.put(HEADER_STUDY_NAME, messageHeader.get(HEADER_STUDY_NAME));
-        }
-
         if (messageHeader.get(HEADER_ERROR) != null) {
             resHeader.put(HEADER_ERROR, messageHeader.get(HEADER_ERROR));
         }
-        if (messageHeader.get(HEADER_SUBSTATIONS_IDS) != null) {
-            resHeader.put(HEADER_SUBSTATIONS_IDS, messageHeader.get(HEADER_SUBSTATIONS_IDS));
+        if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
+            resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
         }
         return resHeader;
     }
@@ -153,18 +139,11 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         var uri = webSocketSession.getHandshakeInfo().getUri();
         String userId = webSocketSession.getHandshakeInfo().getHeaders().getFirst(HEADER_USER_ID);
         MultiValueMap<String, String> parameters = UriComponentsBuilder.fromUri(uri).build(true).getQueryParams();
-        String filterStudyUuid = parameters.getFirst(QUERY_STUDY_UUID);
-        if (filterStudyUuid != null) {
-            try {
-                filterStudyUuid = URLDecoder.decode(filterStudyUuid, StandardCharsets.UTF_8.toString());
-            } catch (UnsupportedEncodingException e) {
-                throw new DirectoryNotificationServerRuntimeException(e.getMessage());
-            }
-        }
+
         String filterUpdateType = parameters.getFirst(QUERY_UPDATE_TYPE);
-        LOGGER.debug("New websocket connection for studyName={}, updateType={}", filterStudyUuid, filterUpdateType);
+        LOGGER.debug("New websocket connection for userId={},  updateType={}", userId, filterUpdateType);
         return webSocketSession
-                .send(notificationFlux(webSocketSession, userId, filterStudyUuid, filterUpdateType)
+                .send(notificationFlux(webSocketSession, userId, filterUpdateType)
                         .mergeWith(heartbeatFlux(webSocketSession)))
                 .and(webSocketSession.receive());
     }
