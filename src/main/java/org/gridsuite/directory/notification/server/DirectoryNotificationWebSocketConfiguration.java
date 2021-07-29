@@ -9,7 +9,6 @@ package org.gridsuite.directory.notification.server;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.HandlerMapping;
@@ -24,11 +23,8 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 @Configuration
 public class DirectoryNotificationWebSocketConfiguration {
 
-    @Autowired
-    private WebSocketHandler webSocketHandler;
-
     @Bean
-    public HandlerMapping webSocketHandlerMapping() {
+    public HandlerMapping webSocketHandlerMapping(WebSocketHandler webSocketHandler) {
         Map<String, WebSocketHandler> map = new HashMap<>();
         map.put("/notify", webSocketHandler);
 

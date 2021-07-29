@@ -19,6 +19,8 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.StandardWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 
+import static org.junit.Assert.assertNotNull;
+
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  */
@@ -34,6 +36,7 @@ public class DirectoryNotificationWebSocketIT {
     @Test
     public void echo() {
         WebSocketClient client = new StandardWebSocketClient();
+        assertNotNull(client);
         client.execute(getUrl("/notify"), WebSocketSession::close).block();
     }
 

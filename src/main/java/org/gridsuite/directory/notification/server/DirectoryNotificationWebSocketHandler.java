@@ -104,7 +104,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                         "payload", m.getPayload(),
                         "headers", toResultHeader(m.getHeaders())));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw new DirectoryNotificationServerRuntimeException(e.toString());
             }
         }).log(CATEGORY_WS_OUTPUT, Level.FINE).map(webSocketSession::textMessage);
     }
