@@ -55,6 +55,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_TIMESTAMP = "timestamp";
     static final String HEADER_ERROR = "error";
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
+    static final String HEADER_NOTIFICATION_TYPE = "notificationType";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -122,6 +123,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
             resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
+        }
+        if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
+            resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
         }
         return resHeader;
     }
