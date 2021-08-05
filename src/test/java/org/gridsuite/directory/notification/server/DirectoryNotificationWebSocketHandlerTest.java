@@ -109,9 +109,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.handle(ws);
 
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false"),
+                Map.of(HEADER_UPDATE_TYPE, "oof", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "true"),
+                Map.of(HEADER_UPDATE_TYPE, "oof", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false"),
                 Map.of(HEADER_UPDATE_TYPE, "rab"),
                 Map.of(HEADER_UPDATE_TYPE, "rab"),
                 Map.of(HEADER_UPDATE_TYPE, "rab"),
@@ -192,17 +192,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testStudyFilter() {
-        withFilters(null);
-    }
-
-    @Test
     public void testTypeFilter() {
-        withFilters("rab");
-    }
-
-    @Test
-    public void testStudyAndTypeFilter() {
         withFilters("rab");
     }
 
