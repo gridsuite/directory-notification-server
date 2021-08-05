@@ -112,7 +112,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "rab", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
                 Map.of(HEADER_UPDATE_TYPE, "rab"),
                 Map.of(HEADER_UPDATE_TYPE, "rab"),
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
@@ -127,7 +127,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"))
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
+                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false"))
                 .map(map -> new GenericMessage<>("", map))
                 .collect(Collectors.toList());
 
