@@ -52,7 +52,7 @@
     <properties>
         <java.version>11</java.version>
 
-        <gridsuite-dependencies.version>11-SNAPSHOT</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>11</gridsuite-dependencies.version>
         <jib.container.environment>SPRING_PROFILES_ACTIVE=default</jib.container.environment>
     </properties>
 
