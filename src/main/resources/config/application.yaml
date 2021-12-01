@@ -8,4 +8,4 @@ spring:
     stream:
       bindings:
         consumeNotification-in-0:
-          destination: directory.update
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}directory.update
