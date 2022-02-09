@@ -123,12 +123,12 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_UPDATE_TYPE, "studies", HEADER_ERROR, "error_message"),
 
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false"))
+                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"))
                 .map(map -> new GenericMessage<>("", map))
                 .collect(Collectors.toList());
 
@@ -145,6 +145,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
+                    if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
+                        return false;
+                    }
                     return  (connectedUserId.equals(userId) || (headerIsPublicDirectory != null && headerIsPublicDirectory))
                             && (filterUpdateType == null || filterUpdateType.equals(updateType));
                 })
@@ -162,7 +165,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         assertEquals(expected, actual);
         assertNotEquals(0, actual.size());
         assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("private_" + otherUserId)).count());
-        assertNotEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
+        //assertNotEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
     }
 
     private Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
@@ -181,6 +184,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }
         if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
             resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
+        }
+        if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
+            resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
         }
         resHeader.remove(HEADER_TIMESTAMP);
 
