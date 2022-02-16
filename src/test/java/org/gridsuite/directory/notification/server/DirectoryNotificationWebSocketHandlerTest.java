@@ -165,7 +165,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         assertEquals(expected, actual);
         assertNotEquals(0, actual.size());
         assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("private_" + otherUserId)).count());
-        //assertNotEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
+        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
     }
 
     private Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
