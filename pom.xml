@@ -52,7 +52,7 @@
     <properties>
         <java.version>11</java.version>
 
-        <gridsuite-dependencies.version>13</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>14</gridsuite-dependencies.version>
     </properties>
 
     <build>
