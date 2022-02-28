@@ -54,6 +54,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_UPDATE_TYPE = "updateType";
     static final String HEADER_TIMESTAMP = "timestamp";
     static final String HEADER_ERROR = "error";
+    static final String HEADER_ELEMENT_NAME = "elementName";
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
 
@@ -91,6 +92,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             Flux<Message<String>> res = f;
             if (userId != null) {
                 res = res.filter(m -> {
+                    if (m.getHeaders().get(HEADER_ERROR) != null && !userId.equals(m.getHeaders().get(HEADER_USER_ID))) {
+                        return false;
+                    }
                     var headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     return userId.equals(m.getHeaders().get(HEADER_USER_ID)) || (headerIsPublicDirectory != null && headerIsPublicDirectory);
                 });
@@ -126,6 +130,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
             resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
+        }
+        if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
+            resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
         }
         return resHeader;
     }
