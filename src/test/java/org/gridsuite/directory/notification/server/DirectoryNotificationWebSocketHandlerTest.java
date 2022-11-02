@@ -7,10 +7,7 @@
 package org.gridsuite.directory.notification.server;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -52,6 +49,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     private WebSocketSession ws;
     private HandshakeInfo handshakeinfo;
     private Flux<Message<String>> flux;
+    private static final String STUDY_UUID = UUID.randomUUID().toString();
 
     @Before
     public void setup() {
@@ -79,10 +77,10 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     private void setUpUriComponentBuilder(String connectedUserId) {
-        setUpUriComponentBuilder(connectedUserId, null);
+        setUpUriComponentBuilder(connectedUserId, null, null);
     }
 
-    private void setUpUriComponentBuilder(String connectedUserId, String filterUpdateType) {
+    private void setUpUriComponentBuilder(String connectedUserId, String filterUpdateType, String filterStudyUuid) {
         UriComponentsBuilder uriComponentBuilder = UriComponentsBuilder.fromUriString("http://localhost:1234/notify");
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -93,13 +91,17 @@ public class DirectoryNotificationWebSocketHandlerTest {
             uriComponentBuilder.queryParam(QUERY_UPDATE_TYPE, filterUpdateType);
         }
 
+        if (filterStudyUuid != null) {
+            uriComponentBuilder.queryParam(QUERY_STUDY_UUID, filterStudyUuid);
+        }
+
         when(handshakeinfo.getUri()).thenReturn(uriComponentBuilder.build().toUri());
     }
 
-    private void withFilters(String filterUpdateType) {
+    private void withFilters(String filterUpdateType, String filterStudyUuid) {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
-        setUpUriComponentBuilder(connectedUserId, filterUpdateType);
+        setUpUriComponentBuilder(connectedUserId, filterUpdateType, filterStudyUuid);
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(objectMapper, Integer.MAX_VALUE);
         var atomicRef = new AtomicReference<FluxSink<Message<String>>>();
@@ -128,7 +130,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"))
+                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"),
+                Map.of(HEADER_STUDY_UUID, STUDY_UUID, HEADER_USER_ID, connectedUserId))
                 .map(map -> new GenericMessage<>("", map))
                 .collect(Collectors.toList());
 
@@ -144,12 +147,14 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 .filter(m -> {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
+                    String studyUuid = (String) m.getHeaders().get(HEADER_STUDY_UUID);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
                         return false;
                     }
                     return  (connectedUserId.equals(userId) || (headerIsPublicDirectory != null && headerIsPublicDirectory))
-                            && (filterUpdateType == null || filterUpdateType.equals(updateType));
+                            && (filterUpdateType == null || filterUpdateType.equals(updateType))
+                            && (filterStudyUuid == null || filterStudyUuid.equals(studyUuid));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(this::toResultHeader)
@@ -164,8 +169,6 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }).collect(Collectors.toList());
         assertEquals(expected, actual);
         assertNotEquals(0, actual.size());
-        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("private_" + otherUserId)).count());
-        assertEquals(0, actual.stream().filter(m -> m.get(HEADER_DIRECTORY_UUID) != null && m.get(HEADER_DIRECTORY_UUID).equals("public_" + otherUserId) && m.get(HEADER_ERROR) != null).count());
     }
 
     private Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
@@ -188,6 +191,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
             resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
         }
+        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
+            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
+        }
         resHeader.remove(HEADER_TIMESTAMP);
 
         return resHeader;
@@ -195,17 +201,22 @@ public class DirectoryNotificationWebSocketHandlerTest {
 
     @Test
     public void testWithoutFilter() {
-        withFilters(null);
+        withFilters(null, null);
     }
 
     @Test
     public void testTypeFilter() {
-        withFilters("rab");
+        withFilters("rab", null);
+    }
+
+    @Test
+    public void testStudyUuidFilter() {
+        withFilters(null, STUDY_UUID);
     }
 
     @Test
     public void testEncodingCharacters() {
-        withFilters("foobar");
+        withFilters("foobar", null);
     }
 
     @Test

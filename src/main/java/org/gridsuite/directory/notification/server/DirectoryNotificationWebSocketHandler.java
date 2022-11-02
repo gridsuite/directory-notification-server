@@ -48,6 +48,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private static final String CATEGORY_BROKER_INPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.input-broker";
     private static final String CATEGORY_WS_OUTPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.output-websocket";
     static final String QUERY_UPDATE_TYPE = "updateType";
+    static final String QUERY_STUDY_UUID = "studyUuid";
     static final String HEADER_USER_ID = "userId";
     static final String HEADER_DIRECTORY_UUID = "directoryUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
@@ -57,6 +58,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_ELEMENT_NAME = "elementName";
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
+    static final String HEADER_STUDY_UUID = "studyUuid";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -87,7 +89,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
      */
     private Flux<WebSocketMessage> notificationFlux(WebSocketSession webSocketSession,
                                                     String userId,
-                                                    String filterUpdateType) {
+                                                    String filterUpdateType,
+                                                    String filterStudyUuid) {
         return flux.transform(f -> {
             Flux<Message<String>> res = f;
             if (userId != null) {
@@ -101,6 +104,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             }
             if (filterUpdateType != null) {
                 res = res.filter(m -> filterUpdateType.equals(m.getHeaders().get(HEADER_UPDATE_TYPE)));
+            }
+            if (filterStudyUuid != null) {
+                res = res.filter(m -> filterStudyUuid.equals(m.getHeaders().get(HEADER_STUDY_UUID)));
             }
             return res;
         }).map(m -> {
@@ -134,6 +140,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
             resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
         }
+        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
+            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
+        }
         return resHeader;
     }
 
@@ -152,9 +161,10 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         MultiValueMap<String, String> parameters = UriComponentsBuilder.fromUri(uri).build(true).getQueryParams();
 
         String filterUpdateType = parameters.getFirst(QUERY_UPDATE_TYPE);
-        LOGGER.debug("New websocket connection for userId={},  updateType={}", userId, filterUpdateType);
+        String filterStudyUuid = parameters.getFirst(QUERY_STUDY_UUID);
+        LOGGER.debug("New websocket connection for userId={},  updateType={}, studyUuid={}", userId, filterUpdateType, filterStudyUuid);
         return webSocketSession
-                .send(notificationFlux(webSocketSession, userId, filterUpdateType)
+                .send(notificationFlux(webSocketSession, userId, filterUpdateType, filterStudyUuid)
                         .mergeWith(heartbeatFlux(webSocketSession)))
                 .and(webSocketSession.receive());
     }
