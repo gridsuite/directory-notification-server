@@ -6,7 +6,6 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,7 +52,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     private static final String STUDY_UUID = UUID.randomUUID().toString();
 
     @Before
-    public void setup() throws IOException {
+    public void setup() {
         objectMapper = new ObjectMapper();
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -93,31 +92,19 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     private void setUpUriComponentBuilder(String connectedUserId) {
-        setUpUriComponentBuilder(connectedUserId, null, null);
-    }
-
-    private void setUpUriComponentBuilder(String connectedUserId, String filterUpdateType, String filterStudyUuid) {
         UriComponentsBuilder uriComponentBuilder = UriComponentsBuilder.fromUriString("http://localhost:1234/notify");
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HEADER_USER_ID, connectedUserId);
         when(handshakeinfo.getHeaders()).thenReturn(httpHeaders);
 
-        if (filterUpdateType != null) {
-            uriComponentBuilder.queryParam(FILTER_UPDATE_TYPE, filterUpdateType);
-        }
-
-        if (filterStudyUuid != null) {
-            uriComponentBuilder.queryParam(FILTER_STUDY_UUID, filterStudyUuid);
-        }
-
         when(handshakeinfo.getUri()).thenReturn(uriComponentBuilder.build().toUri());
     }
 
-    private void withFilters(String filterUpdateType, String filterStudyUuid) {
+    private void withFilters(String filterUpdateType, String filterElementUuid) {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
-        setUpUriComponentBuilder(connectedUserId, filterUpdateType, filterStudyUuid);
+        setUpUriComponentBuilder(connectedUserId);
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(objectMapper, Integer.MAX_VALUE);
         var atomicRef = new AtomicReference<FluxSink<Message<String>>>();
@@ -129,8 +116,10 @@ public class DirectoryNotificationWebSocketHandlerTest {
         if (filterUpdateType != null) {
             filterMap.put(FILTER_UPDATE_TYPE, filterUpdateType);
         }
-        if (filterStudyUuid != null) {
-            filterMap.put(FILTER_STUDY_UUID, filterStudyUuid);
+        if (filterElementUuid != null) {
+            ArrayList<String> list = new ArrayList<>();
+            list.add(filterElementUuid);
+            filterMap.put(FILTER_ELEMENT_UUID, list);
         }
         when(ws.getAttributes()).thenReturn(filterMap);
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
@@ -171,13 +160,14 @@ public class DirectoryNotificationWebSocketHandlerTest {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
                     String studyUuid = (String) m.getHeaders().get(HEADER_STUDY_UUID);
+                    String directoryUuid = (String) m.getHeaders().get(HEADER_DIRECTORY_UUID);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
                         return false;
                     }
                     return  (connectedUserId.equals(userId) || (headerIsPublicDirectory != null && headerIsPublicDirectory))
                             && (filterUpdateType == null || filterUpdateType.equals(updateType))
-                            && (filterStudyUuid == null || filterStudyUuid.equals(studyUuid));
+                            && (filterElementUuid == null || (filterElementUuid.equals(studyUuid) || filterElementUuid.equals(directoryUuid)));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(this::toResultHeader)
@@ -263,7 +253,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         var dataBufferFactory = new DefaultDataBufferFactory();
 
         var map = new ConcurrentHashMap<String, Object>();
-        Filters filters = new Filters("studyUuidFilter", "updateTypeFilter");
+        ArrayList<String> elementUuid = new ArrayList<>();
+        elementUuid.add("elementUuidFilter");
+        Filters filters = new Filters("updateTypeFilter", elementUuid);
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(filters);
         when(ws2.receive()).thenReturn(Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, dataBufferFactory.wrap(json.getBytes()))));
@@ -274,8 +266,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.consumeNotification().accept(flux);
         notificationWebSocketHandler.receive(ws2).subscribe();
 
-        assertEquals("studyUuidFilter", map.get("studyUuid"));
-        assertEquals("updateTypeFilter", map.get("updateType"));
+        assertEquals("updateTypeFilter", map.get(FILTER_UPDATE_TYPE));
+        assertTrue(((ArrayList<String>) map.get(FILTER_ELEMENT_UUID)).contains("elementUuidFilter"));
     }
 
     @Test
@@ -295,8 +287,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.consumeNotification().accept(flux);
         notificationWebSocketHandler.receive(ws2).subscribe();
 
-        assertNull(map.get("studyUuid"));
-        assertNull(map.get("updateType"));
+        assertNull(map.get(FILTER_UPDATE_TYPE));
+        assertNull(map.get(FILTER_ELEMENT_UUID));
     }
 
     @Test
@@ -313,8 +305,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.consumeNotification().accept(flux);
         notificationWebSocketHandler.receive(ws2).subscribe();
 
-        assertNull(map.get("studyUuid"));
-        assertNull(map.get("updateType"));
+        assertNull(map.get(FILTER_UPDATE_TYPE));
+        assertNull(map.get(FILTER_ELEMENT_UUID));
     }
 
     @Test

@@ -8,6 +8,7 @@ package org.gridsuite.directory.notification.server;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -46,7 +47,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private static final String CATEGORY_BROKER_INPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.input-broker";
     private static final String CATEGORY_WS_OUTPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.output-websocket";
     static final String FILTER_UPDATE_TYPE = "updateType";
-    static final String FILTER_STUDY_UUID = "studyUuid";
+    static final String FILTER_ELEMENT_UUID = "elementUuid";
     static final String HEADER_USER_ID = "userId";
     static final String HEADER_DIRECTORY_UUID = "directoryUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
@@ -101,11 +102,11 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return res;
         }).filter(message -> {
             String filterUpdateType = (String) webSocketSession.getAttributes().get(FILTER_UPDATE_TYPE);
-            String filterStudyUuid = (String) webSocketSession.getAttributes().get(FILTER_STUDY_UUID);
+            ArrayList<String> filterElementUuid = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUID);
             if (filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE))) {
                 return false;
             }
-            return filterStudyUuid == null || filterStudyUuid.equals(message.getHeaders().get(HEADER_STUDY_UUID));
+            return filterElementUuid == null || (filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID)));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
@@ -164,8 +165,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                             if (receivedFilters.getUpdateType() != null) {
                                 webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, receivedFilters.getUpdateType());
                             }
-                            if (receivedFilters.getStudyUuid() != null) {
-                                webSocketSession.getAttributes().put(FILTER_STUDY_UUID, receivedFilters.getStudyUuid());
+                            if (receivedFilters.getElementUuid() != null) {
+                                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUID, receivedFilters.getElementUuid());
                             }
                         }
                     } catch (JsonProcessingException e) {
