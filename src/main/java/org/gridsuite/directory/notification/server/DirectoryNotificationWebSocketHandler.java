@@ -8,23 +8,26 @@ package org.gridsuite.directory.notification.server;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
+import org.gridsuite.directory.notification.server.dto.Filters;
+import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,7 +50,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private static final String CATEGORY_BROKER_INPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.input-broker";
     private static final String CATEGORY_WS_OUTPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.output-websocket";
     static final String FILTER_UPDATE_TYPE = "updateType";
-    static final String FILTER_ELEMENT_UUID = "elementUuid";
+    static final String FILTER_ELEMENT_UUIDS = "elementUuids";
+    static final String QUERY_ELEMENT_UUID = "elementUuid";
     static final String HEADER_USER_ID = "userId";
     static final String HEADER_DIRECTORY_UUID = "directoryUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
@@ -102,10 +106,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return res;
         }).filter(message -> {
             String filterUpdateType = (String) webSocketSession.getAttributes().get(FILTER_UPDATE_TYPE);
-            ArrayList<String> filterElementUuid = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUID);
-            if (filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE))) {
-                return false;
-            }
+            return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
+        }).filter(message -> {
+            ArrayList<String> filterElementUuid = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
             return filterElementUuid == null || (filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID)));
         }).map(m -> {
             try {
@@ -161,23 +164,56 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                         if (!(wsPayload.startsWith(webSocketSession.getId() + "-"))) {
                             LOGGER.debug("Message received : {} by session {}", wsPayload, webSocketSession.getId());
                             Filters receivedFilters = jacksonObjectMapper.readValue(webSocketMessage.getPayloadAsText(), Filters.class);
-                            //because null is not allowed in ConcurrentHashMap and will cause the websocket to close
-                            if (receivedFilters.getUpdateType() != null) {
-                                webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, receivedFilters.getUpdateType());
-                            }
-                            if (receivedFilters.getElementUuid() != null) {
-                                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUID, receivedFilters.getElementUuid());
-                            }
+                            handleReceivedFilters(webSocketSession, receivedFilters);
                         }
                     } catch (JsonProcessingException e) {
-                        LOGGER.error("Unprocessable message received");
+                        LOGGER.error(e.toString());
                     }
                 });
     }
 
+    private void handleReceivedFilters(WebSocketSession webSocketSession, Filters filters) {
+        if (filters.getFiltersToRemove() != null) {
+            FiltersToRemove filtersToRemove = filters.getFiltersToRemove();
+            //because null is not allowed in ConcurrentHashMap and will cause the websocket to close
+            if (filtersToRemove.getRemoveUpdateType() != null && filtersToRemove.getRemoveUpdateType()) {
+                webSocketSession.getAttributes().remove(FILTER_UPDATE_TYPE);
+            }
+            if (filtersToRemove.getRemoveElementUuids() != null) {
+                ArrayList<String> elementUuids = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
+                elementUuids.removeAll(filtersToRemove.getRemoveElementUuids());
+                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, elementUuids);
+            }
+        }
+        if (filters.getFiltersToAdd() != null) {
+            FiltersToAdd filtersToAdd = filters.getFiltersToAdd();
+            //because null is not allowed in ConcurrentHashMap and will cause the websocket to close
+            if (filtersToAdd.getUpdateType() != null) {
+                webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, filtersToAdd.getUpdateType());
+            }
+            if (filtersToAdd.getElementUuids() != null) {
+                ArrayList<String> elementUuids = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
+                var elementUuidsWithoutDuplicate = new HashSet<>(elementUuids);
+                elementUuidsWithoutDuplicate.addAll(filters.getFiltersToAdd().getElementUuids());
+                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, new ArrayList<>(elementUuidsWithoutDuplicate));
+            }
+        }
+    }
+
     @Override
     public Mono<Void> handle(WebSocketSession webSocketSession) {
+        var uri = webSocketSession.getHandshakeInfo().getUri();
         String userId = webSocketSession.getHandshakeInfo().getHeaders().getFirst(HEADER_USER_ID);
+        MultiValueMap<String, String> parameters = UriComponentsBuilder.fromUri(uri).build(true).getQueryParams();
+        String filterUpdateType = parameters.getFirst(FILTER_UPDATE_TYPE);
+        String filterElementUuid = parameters.getFirst(QUERY_ELEMENT_UUID);
+        if (filterUpdateType != null) {
+            webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, filterUpdateType);
+        }
+        if (filterElementUuid != null) {
+            webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, new ArrayList<>(Collections.singletonList(filterElementUuid)));
+        }
+        LOGGER.debug("New websocket connection for userId={},  updateType={}, elementsUuid={}", userId, filterUpdateType, filterElementUuid);
         return webSocketSession
                 .send(notificationFlux(webSocketSession, userId)
                         .mergeWith(heartbeatFlux(webSocketSession)))
