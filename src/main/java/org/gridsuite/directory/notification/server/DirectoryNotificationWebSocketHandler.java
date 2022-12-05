@@ -159,9 +159,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         return webSocketSession.receive()
                 .doOnNext(webSocketMessage -> {
                     try {
-                        String wsPayload = webSocketMessage.getPayloadAsText();
                         //if it's not the heartbeat
-                        if (!(wsPayload.startsWith(webSocketSession.getId() + "-"))) {
+                        if (webSocketMessage.getType().equals(WebSocketMessage.Type.TEXT)) {
+                            String wsPayload = webSocketMessage.getPayloadAsText();
                             LOGGER.debug("Message received : {} by session {}", wsPayload, webSocketSession.getId());
                             Filters receivedFilters = jacksonObjectMapper.readValue(webSocketMessage.getPayloadAsText(), Filters.class);
                             handleReceivedFilters(webSocketSession, receivedFilters);

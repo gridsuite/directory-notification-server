@@ -95,19 +95,38 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     private void setUpUriComponentBuilder(String connectedUserId) {
+        setUpUriComponentBuilder(connectedUserId, null, null);
+    }
+
+    private void setUpUriComponentBuilder(String connectedUserId, String queryFilterUpdateType, String queryFilterElementUuid) {
         UriComponentsBuilder uriComponentBuilder = UriComponentsBuilder.fromUriString("http://localhost:1234/notify");
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HEADER_USER_ID, connectedUserId);
         when(handshakeinfo.getHeaders()).thenReturn(httpHeaders);
 
+        if (queryFilterUpdateType != null) {
+            uriComponentBuilder.queryParam(FILTER_UPDATE_TYPE, queryFilterUpdateType);
+        }
+
+        if (queryFilterElementUuid != null) {
+            uriComponentBuilder.queryParam(QUERY_ELEMENT_UUID, queryFilterElementUuid);
+        }
         when(handshakeinfo.getUri()).thenReturn(uriComponentBuilder.build().toUri());
     }
 
-    private void withFilters(String filterUpdateType, String filterElementUuid) {
+    private void withFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
-        setUpUriComponentBuilder(connectedUserId);
+
+        Map<String, Object> filterMap = new HashMap<>();
+        when(ws.getAttributes()).thenReturn(filterMap);
+
+        if (inUrl) {
+            setUpUriComponentBuilder(connectedUserId, filterUpdateType, filterElementUuid);
+        } else {
+            setUpUriComponentBuilder(connectedUserId);
+        }
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(objectMapper, Integer.MAX_VALUE);
         var atomicRef = new AtomicReference<FluxSink<Message<String>>>();
@@ -115,16 +134,18 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.consumeNotification().accept(flux);
         var sink = atomicRef.get();
         notificationWebSocketHandler.handle(ws);
-        Map<String, Object> filterMap = new HashMap<>();
-        if (filterUpdateType != null) {
-            filterMap.put(FILTER_UPDATE_TYPE, filterUpdateType);
+
+        if (!inUrl) {
+            if (filterUpdateType != null) {
+                filterMap.put(FILTER_UPDATE_TYPE, filterUpdateType);
+            }
+            if (filterElementUuid != null) {
+                ArrayList<String> list = new ArrayList<>();
+                list.add(filterElementUuid);
+                filterMap.put(FILTER_ELEMENT_UUIDS, list);
+            }
         }
-        if (filterElementUuid != null) {
-            ArrayList<String> list = new ArrayList<>();
-            list.add(filterElementUuid);
-            filterMap.put(FILTER_ELEMENT_UUIDS, list);
-        }
-        when(ws.getAttributes()).thenReturn(filterMap);
+
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
@@ -216,23 +237,43 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWithoutFilter() {
-        withFilters(null, null);
+    public void testWithoutFilterInBody() {
+        withFilters(null, null, false);
     }
 
     @Test
-    public void testTypeFilter() {
-        withFilters("rab", null);
+    public void testWithoutFilterInUrl() {
+        withFilters(null, null, true);
     }
 
     @Test
-    public void testStudyUuidFilter() {
-        withFilters(null, STUDY_UUID);
+    public void testTypeFilterInBody() {
+        withFilters("rab", null, false);
     }
 
     @Test
-    public void testEncodingCharacters() {
-        withFilters("foobar", null);
+    public void testTypeFilterInUrl() {
+        withFilters("rab", null, true);
+    }
+
+    @Test
+    public void testStudyUuidFilterInBody() {
+        withFilters(null, STUDY_UUID, false);
+    }
+
+    @Test
+    public void testStudyUuidFilterInUrl() {
+        withFilters(null, STUDY_UUID, true);
+    }
+
+    @Test
+    public void testEncodingCharactersInBody() {
+        withFilters("foobar", null, false);
+    }
+
+    @Test
+    public void testEncodingCharactersInUrl() {
+        withFilters("foobar", null, true);
     }
 
     @Test
