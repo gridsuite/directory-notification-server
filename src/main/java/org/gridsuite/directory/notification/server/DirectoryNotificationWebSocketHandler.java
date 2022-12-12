@@ -50,6 +50,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private static final String CATEGORY_BROKER_INPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.input-broker";
     private static final String CATEGORY_WS_OUTPUT = DirectoryNotificationWebSocketHandler.class.getName() + ".messages.output-websocket";
     static final String FILTER_UPDATE_TYPE = "updateType";
+    static final String QUERY_UPDATE_TYPE = FILTER_UPDATE_TYPE;
     static final String FILTER_ELEMENT_UUIDS = "elementUuids";
     static final String QUERY_ELEMENT_UUID = "elementUuid";
     static final String HEADER_USER_ID = "userId";
@@ -108,7 +109,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             String filterUpdateType = (String) webSocketSession.getAttributes().get(FILTER_UPDATE_TYPE);
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
-            ArrayList<String> filterElementUuid = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
+            Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
             return filterElementUuid == null || (filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID)));
         }).map(m -> {
             try {
@@ -175,13 +176,12 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     private void handleReceivedFilters(WebSocketSession webSocketSession, Filters filters) {
         if (filters.getFiltersToRemove() != null) {
             FiltersToRemove filtersToRemove = filters.getFiltersToRemove();
-            //because null is not allowed in ConcurrentHashMap and will cause the websocket to close
-            if (filtersToRemove.getRemoveUpdateType() != null && filtersToRemove.getRemoveUpdateType()) {
+            if (Boolean.TRUE.equals(filtersToRemove.getRemoveUpdateType())) {
                 webSocketSession.getAttributes().remove(FILTER_UPDATE_TYPE);
             }
             if (filtersToRemove.getRemoveElementUuids() != null) {
-                ArrayList<String> elementUuids = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-                elementUuids.removeAll(filtersToRemove.getRemoveElementUuids());
+                Set<String> elementUuids = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
+                filtersToRemove.getRemoveElementUuids().forEach(elementUuids::remove);
                 webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, elementUuids);
             }
         }
@@ -192,10 +192,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                 webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, filtersToAdd.getUpdateType());
             }
             if (filtersToAdd.getElementUuids() != null) {
-                ArrayList<String> elementUuids = (ArrayList<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-                var elementUuidsWithoutDuplicate = new HashSet<>(elementUuids);
-                elementUuidsWithoutDuplicate.addAll(filters.getFiltersToAdd().getElementUuids());
-                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, new ArrayList<>(elementUuidsWithoutDuplicate));
+                Set<String> elementUuids = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
+                elementUuids.addAll(filters.getFiltersToAdd().getElementUuids());
+                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, elementUuids);
             }
         }
     }
@@ -205,13 +204,13 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         var uri = webSocketSession.getHandshakeInfo().getUri();
         String userId = webSocketSession.getHandshakeInfo().getHeaders().getFirst(HEADER_USER_ID);
         MultiValueMap<String, String> parameters = UriComponentsBuilder.fromUri(uri).build(true).getQueryParams();
-        String filterUpdateType = parameters.getFirst(FILTER_UPDATE_TYPE);
+        String filterUpdateType = parameters.getFirst(QUERY_UPDATE_TYPE);
         String filterElementUuid = parameters.getFirst(QUERY_ELEMENT_UUID);
         if (filterUpdateType != null) {
             webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, filterUpdateType);
         }
         if (filterElementUuid != null) {
-            webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, new ArrayList<>(Collections.singletonList(filterElementUuid)));
+            webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, new HashSet<>(Set.of(filterElementUuid)));
         }
         LOGGER.debug("New websocket connection for userId={},  updateType={}, elementsUuid={}", userId, filterUpdateType, filterElementUuid);
         return webSocketSession

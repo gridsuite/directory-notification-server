@@ -140,9 +140,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 filterMap.put(FILTER_UPDATE_TYPE, filterUpdateType);
             }
             if (filterElementUuid != null) {
-                ArrayList<String> list = new ArrayList<>();
-                list.add(filterElementUuid);
-                filterMap.put(FILTER_ELEMENT_UUIDS, list);
+                filterMap.put(FILTER_ELEMENT_UUIDS, new HashSet<>(Set.of(filterElementUuid)));
             }
         }
 
@@ -297,7 +295,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         var dataBufferFactory = new DefaultDataBufferFactory();
 
         var map = new ConcurrentHashMap<String, Object>();
-        map.put(FILTER_ELEMENT_UUIDS, new ArrayList<>(Collections.singletonList("elementUuidFilter1")));
+        map.put(FILTER_ELEMENT_UUIDS, new HashSet<>(Set.of("elementUuidFilter1")));
         ArrayList<String> elementUuid = new ArrayList<>();
         elementUuid.add("elementUuidFilter2");
         FiltersToAdd filtersToAdd = new FiltersToAdd("updateTypeFilter", elementUuid);
@@ -314,9 +312,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.receive(ws2).subscribe();
 
         assertEquals("updateTypeFilter", map.get(FILTER_UPDATE_TYPE));
-        assertEquals(2, ((ArrayList<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
-        assertTrue(((ArrayList<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter1") &&
-                ((ArrayList<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter2"));
+        assertEquals(2, ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
+        assertTrue(((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter1") &&
+                ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter2"));
     }
 
     @Test
@@ -324,7 +322,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         setUpUriComponentBuilder("userId");
         var dataBufferFactory = new DefaultDataBufferFactory();
 
-        ArrayList<String> elementUuid = new ArrayList<>(Arrays.asList("elementUuidFilter1", "elementUuidFilter2", "elementUuidFilter3"));
+        Set<String> elementUuid = new HashSet<>(Set.of("elementUuidFilter1", "elementUuidFilter2", "elementUuidFilter3"));
         var map = new ConcurrentHashMap<String, Object>();
         map.put(FILTER_UPDATE_TYPE, "updateType");
         map.put(FILTER_ELEMENT_UUIDS, elementUuid);
@@ -344,8 +342,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         notificationWebSocketHandler.receive(ws2).subscribe();
 
         assertNull(ws2.getAttributes().get(FILTER_UPDATE_TYPE));
-        assertEquals(1, ((ArrayList<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
-        assertTrue(((ArrayList<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter3"));
+        assertEquals(1, ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
+        assertTrue(((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter3"));
     }
 
     @Test

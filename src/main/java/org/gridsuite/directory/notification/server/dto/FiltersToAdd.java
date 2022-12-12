@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Abdelsalem Hedhili <abdelsalem.hedhili at rte-france.com>
@@ -26,5 +26,5 @@ public class FiltersToAdd {
 
     private String updateType;
 
-    private ArrayList<String> elementUuids;
+    private List<String> elementUuids;
 }
