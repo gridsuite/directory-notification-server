@@ -50,7 +50,7 @@
     </developers>
 
     <properties>
-        <gridsuite-dependencies.version>23</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>25</gridsuite-dependencies.version>
     </properties>
 
     <build>
