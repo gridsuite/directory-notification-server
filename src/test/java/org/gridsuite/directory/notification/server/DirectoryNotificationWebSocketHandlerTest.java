@@ -187,9 +187,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
                         return false;
                     }
-                    return (connectedUserId.equals(userId) || (headerIsPublicDirectory != null && headerIsPublicDirectory))
+                    return (connectedUserId.equals(userId) || headerIsPublicDirectory != null && headerIsPublicDirectory)
                             && (filterUpdateType == null || filterUpdateType.equals(updateType))
-                            && (filterElementUuid == null || (filterElementUuid.equals(studyUuid) || filterElementUuid.equals(directoryUuid)));
+                            && (filterElementUuid == null || filterElementUuid.equals(studyUuid) || filterElementUuid.equals(directoryUuid));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(this::toResultHeader)

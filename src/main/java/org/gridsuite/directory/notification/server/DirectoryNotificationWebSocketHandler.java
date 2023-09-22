@@ -101,7 +101,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                         return false;
                     }
                     var headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
-                    return userId.equals(m.getHeaders().get(HEADER_USER_ID)) || (headerIsPublicDirectory != null && headerIsPublicDirectory);
+                    return userId.equals(m.getHeaders().get(HEADER_USER_ID)) || headerIsPublicDirectory != null && headerIsPublicDirectory;
                 });
             }
             return res;
@@ -110,7 +110,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || (filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID)));
+            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
