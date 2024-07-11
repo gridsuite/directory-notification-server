@@ -62,7 +62,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_ELEMENT_NAME = "elementName";
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
-    static final String HEADER_STUDY_UUID = "studyUuid";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
 
     private ObjectMapper jacksonObjectMapper;
@@ -111,7 +110,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_STUDY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
+            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
@@ -142,9 +141,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
             resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
-        }
-        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
-            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
