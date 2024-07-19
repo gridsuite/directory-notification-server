@@ -52,7 +52,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     private WebSocketSession ws2;
     private HandshakeInfo handshakeinfo;
     private Flux<Message<String>> flux;
-    private static final String STUDY_UUID = UUID.randomUUID().toString();
+    private static final String ELEMENT_UUID = UUID.randomUUID().toString();
 
     @Before
     public void setup() {
@@ -156,7 +156,6 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_UPDATE_TYPE, "oof"),
 
                 Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
-                Map.of(HEADER_UPDATE_TYPE, "studies", HEADER_ERROR, "error_message"),
 
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
@@ -165,7 +164,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
                         HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"),
-                Map.of(HEADER_STUDY_UUID, STUDY_UUID, HEADER_USER_ID, connectedUserId))
+                Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId))
                 .map(map -> new GenericMessage<>("", map))
                 .collect(Collectors.toList());
 
@@ -181,7 +180,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 .filter(m -> {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
-                    String studyUuid = (String) m.getHeaders().get(HEADER_STUDY_UUID);
+                    String elementUuid = (String) m.getHeaders().get(HEADER_ELEMENT_UUID);
                     String directoryUuid = (String) m.getHeaders().get(HEADER_DIRECTORY_UUID);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
@@ -189,7 +188,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                     }
                     return (connectedUserId.equals(userId) || headerIsPublicDirectory != null && headerIsPublicDirectory)
                             && (filterUpdateType == null || filterUpdateType.equals(updateType))
-                            && (filterElementUuid == null || filterElementUuid.equals(studyUuid) || filterElementUuid.equals(directoryUuid));
+                            && (filterElementUuid == null || filterElementUuid.equals(directoryUuid) || filterElementUuid.equals(elementUuid));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(this::toResultHeader)
@@ -226,8 +225,8 @@ public class DirectoryNotificationWebSocketHandlerTest {
         if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
             resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
         }
-        if (messageHeader.get(HEADER_STUDY_UUID) != null) {
-            resHeader.put(HEADER_STUDY_UUID, messageHeader.get(HEADER_STUDY_UUID));
+        if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
+            resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
         }
         resHeader.remove(HEADER_TIMESTAMP);
 
@@ -255,16 +254,6 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testStudyUuidFilterInBody() {
-        withFilters(null, STUDY_UUID, false);
-    }
-
-    @Test
-    public void testStudyUuidFilterInUrl() {
-        withFilters(null, STUDY_UUID, true);
-    }
-
-    @Test
     public void testEncodingCharactersInBody() {
         withFilters("foobar", null, false);
     }
@@ -272,6 +261,16 @@ public class DirectoryNotificationWebSocketHandlerTest {
     @Test
     public void testEncodingCharactersInUrl() {
         withFilters("foobar", null, true);
+    }
+
+    @Test
+    public void testElementUuidFilterInBody() {
+        withFilters(null, ELEMENT_UUID, false);
+    }
+
+    @Test
+    public void testElementUuidFilterInUrl() {
+        withFilters(null, ELEMENT_UUID, true);
     }
 
     @Test
