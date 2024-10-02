@@ -63,6 +63,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
+    static final String HEADER_IS_DIRECTORY_MOVING = "isDirectoryMoving";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -144,6 +145,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
+        }
+        if (messageHeader.get(HEADER_IS_DIRECTORY_MOVING) != null) {
+            resHeader.put(HEADER_IS_DIRECTORY_MOVING, messageHeader.get(HEADER_IS_DIRECTORY_MOVING));
         }
         return resHeader;
     }
