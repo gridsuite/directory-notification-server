@@ -6,25 +6,19 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.Filters;
+import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.springframework.core.io.buffer.*;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.GenericMessage;
@@ -37,10 +31,43 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.*;
-import static org.junit.Assert.*;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.FILTER_ELEMENT_UUIDS;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.FILTER_UPDATE_TYPE;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_DIRECTORY_UUID;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ELEMENT_NAME;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ELEMENT_UUID;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ERROR;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_IS_PUBLIC_DIRECTORY;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_IS_ROOT_DIRECTORY;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_NOTIFICATION_TYPE;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_TIMESTAMP;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_UPDATE_TYPE;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_ID;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_MESSAGE;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.QUERY_ELEMENT_UUID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -227,6 +254,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
+        }
+        if (messageHeader.get(HEADER_USER_MESSAGE) != null) {
+            resHeader.put(HEADER_USER_MESSAGE, messageHeader.get(HEADER_USER_MESSAGE));
         }
         resHeader.remove(HEADER_TIMESTAMP);
 

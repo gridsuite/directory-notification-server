@@ -66,7 +66,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
-    static final String MESSAGE_TYPE_USER_MESSAGE = "userMessage";
+    static final String HEADER_USER_MESSAGE = "userMessage";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -101,7 +101,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             Flux<Message<String>> res = f;
             if (userId != null) {
                 res = res.filter(m -> {
-                    if ((m.getHeaders().get(HEADER_ERROR) != null || m.getHeaders().get(MESSAGE_TYPE_USER_MESSAGE) != null) && !userId.equals(m.getHeaders().get(HEADER_USER_ID))) {
+                    if ((m.getHeaders().get(HEADER_ERROR) != null || m.getHeaders().get(HEADER_USER_MESSAGE) != null) && !userId.equals(m.getHeaders().get(HEADER_USER_ID))) {
                         return false;
                     }
                     var headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
@@ -149,8 +149,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
         }
-        if (messageHeader.get(MESSAGE_TYPE_USER_MESSAGE) != null) {
-            resHeader.put(MESSAGE_TYPE_USER_MESSAGE, messageHeader.get(MESSAGE_TYPE_USER_MESSAGE));
+        if (messageHeader.get(HEADER_USER_MESSAGE) != null) {
+            resHeader.put(HEADER_USER_MESSAGE, messageHeader.get(HEADER_USER_MESSAGE));
         }
         return resHeader;
     }
