@@ -173,29 +173,29 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }
 
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
-                        Map.of(HEADER_UPDATE_TYPE, "rab"),
-                        Map.of(HEADER_UPDATE_TYPE, "rab"),
-                        Map.of(HEADER_UPDATE_TYPE, "rab"),
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
-                        Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "rab"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
+                Map.of(HEADER_UPDATE_TYPE, "oof"),
 
-                        Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
+                Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
 
-                        Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
-                        Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
-                        Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                        Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
-                        Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                        Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
+                Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
+                Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
                                 HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu", HEADER_IS_DIRECTORY_MOVING, "false"),
-                        Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
-                        Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"))
-                .map(map -> new GenericMessage<>("", map))
-                .toList();
+                Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
+                Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"))
+            .map(map -> new GenericMessage<>("", map))
+            .toList();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Flux<WebSocketMessage>> argument = ArgumentCaptor.forClass(Flux.class);
