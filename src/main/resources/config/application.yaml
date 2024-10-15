@@ -7,5 +7,5 @@ spring:
       definition: consumeNotification
     stream:
       bindings:
-        consume-notification-in-0:
+        consumeNotification-in-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}directory.update
