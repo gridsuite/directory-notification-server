@@ -6,16 +6,10 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.Filters;
+import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +25,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 /**
  * A WebSocketHandler that sends messages from a broker to websockets opened by clients, interleaving with pings to keep connections open.
@@ -64,6 +67,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
     static final String HEADER_IS_DIRECTORY_MOVING = "isDirectoryMoving";
+    static final String HEADER_USER_MESSAGE = "userMessage";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -98,7 +102,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             Flux<Message<String>> res = f;
             if (userId != null) {
                 res = res.filter(m -> {
-                    if (m.getHeaders().get(HEADER_ERROR) != null && !userId.equals(m.getHeaders().get(HEADER_USER_ID))) {
+                    if ((m.getHeaders().get(HEADER_ERROR) != null || m.getHeaders().get(HEADER_USER_MESSAGE) != null) && !userId.equals(m.getHeaders().get(HEADER_USER_ID))) {
                         return false;
                     }
                     var headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
@@ -148,6 +152,9 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_IS_DIRECTORY_MOVING) != null) {
             resHeader.put(HEADER_IS_DIRECTORY_MOVING, messageHeader.get(HEADER_IS_DIRECTORY_MOVING));
+        }
+        if (messageHeader.get(HEADER_USER_MESSAGE) != null) {
+            resHeader.put(HEADER_USER_MESSAGE, messageHeader.get(HEADER_USER_MESSAGE));
         }
         return resHeader;
     }
