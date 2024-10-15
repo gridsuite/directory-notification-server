@@ -59,6 +59,7 @@ import static org.gridsuite.directory.notification.server.DirectoryNotificationW
 import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_UPDATE_TYPE;
 import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_ID;
 import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_MESSAGE;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_IS_DIRECTORY_MOVING;
 import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.QUERY_ELEMENT_UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -190,11 +191,11 @@ public class DirectoryNotificationWebSocketHandlerTest {
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
                 Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
                 Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"),
+                                HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu", HEADER_IS_DIRECTORY_MOVING, "false"),
                 Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
                 Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"))
-                .map(map -> new GenericMessage<>("", map))
-                .collect(Collectors.toList());
+            .map(map -> new GenericMessage<>("", map))
+            .toList();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Flux<WebSocketMessage>> argument = ArgumentCaptor.forClass(Flux.class);
@@ -255,6 +256,9 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
+        }
+        if (messageHeader.get(HEADER_IS_DIRECTORY_MOVING) != null) {
+            resHeader.put(HEADER_IS_DIRECTORY_MOVING, messageHeader.get(HEADER_IS_DIRECTORY_MOVING));
         }
         if (messageHeader.get(HEADER_USER_MESSAGE) != null) {
             resHeader.put(HEADER_USER_MESSAGE, messageHeader.get(HEADER_USER_MESSAGE));
