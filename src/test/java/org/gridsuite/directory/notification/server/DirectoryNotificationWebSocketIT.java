@@ -6,41 +6,33 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import java.net.URI;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.StandardWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(classes = { DirectoryNotificationApplication.class })
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = { DirectoryNotificationApplication.class })
 @DirtiesContext
-public class DirectoryNotificationWebSocketIT {
+class DirectoryNotificationWebSocketIT {
 
     @LocalServerPort
     private String port;
 
     @Test
-    public void echo() {
+    void echo() {
         WebSocketClient client = new StandardWebSocketClient();
         assertNotNull(client);
-        client.execute(getUrl("/notify"), WebSocketSession::close).block();
-    }
-
-    protected URI getUrl(String path) {
-        return URI.create("ws://localhost:" + this.port + path);
+        client.execute(UriComponentsBuilder.newInstance()
+                .scheme("ws").host("localhost").port(this.port).path("/notify").build().toUri(),
+                WebSocketSession::close).block();
     }
 }
