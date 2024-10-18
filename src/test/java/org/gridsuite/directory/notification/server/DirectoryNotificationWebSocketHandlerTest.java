@@ -12,8 +12,10 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import org.gridsuite.directory.notification.server.dto.Filters;
 import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -32,57 +34,31 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.FILTER_ELEMENT_UUIDS;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.FILTER_UPDATE_TYPE;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_DIRECTORY_UUID;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ELEMENT_NAME;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ELEMENT_UUID;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_ERROR;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_IS_PUBLIC_DIRECTORY;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_IS_ROOT_DIRECTORY;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_NOTIFICATION_TYPE;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_TIMESTAMP;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_UPDATE_TYPE;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_ID;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.HEADER_USER_MESSAGE;
-import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.QUERY_ELEMENT_UUID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  */
-public class DirectoryNotificationWebSocketHandlerTest {
+class DirectoryNotificationWebSocketHandlerTest {
 
     private ObjectMapper objectMapper;
     private WebSocketSession ws;
     private WebSocketSession ws2;
     private HandshakeInfo handshakeinfo;
-    private Flux<Message<String>> flux;
-    private static final String ELEMENT_UUID = UUID.randomUUID().toString();
+    private static final String ELEMENT_UUID = "87a52b4a-143d-4d4e-8b27-88abde90bd0d"; //can't be random with @CsvSource
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         objectMapper = new ObjectMapper();
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -142,7 +118,18 @@ public class DirectoryNotificationWebSocketHandlerTest {
         when(handshakeinfo.getUri()).thenReturn(uriComponentBuilder.build().toUri());
     }
 
-    private void withFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) {
+    @CsvSource(value = {
+        "null, null, false", //testWithoutFilterInBody
+        "null, null, true",  //testWithoutFilterInUrl
+        "rab, null, false", //testTypeFilterInBody
+        "rab, null, true",  //testTypeFilterInUrl
+        "foobar, null, false", //testEncodingCharactersInBody
+        "foobar, null, true",  //testEncodingCharactersInUrl
+        "null, " + ELEMENT_UUID + ", false", //testElementUuidFilterInBody
+        "null, " + ELEMENT_UUID + ", true",  //testElementUuidFilterInUrl
+    }, nullValues = {"null"})
+    @ParameterizedTest(name = "inUrl={2} filter({0}) filterUuid({1})")
+    void testWithFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
 
@@ -172,29 +159,28 @@ public class DirectoryNotificationWebSocketHandlerTest {
         }
 
         List<GenericMessage<String>> refMessages = Stream.<Map<String, Object>>of(
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_UPDATE_TYPE, "rab"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
-                Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "rab"),
+            Map.of(HEADER_UPDATE_TYPE, "rab"),
+            Map.of(HEADER_UPDATE_TYPE, "rab"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
+            Map.of(HEADER_UPDATE_TYPE, "oof"),
 
-                Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
+            Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
 
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
-                Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
-                Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-                Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                        HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"),
-                Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
-                Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"))
-                .map(map -> new GenericMessage<>("", map))
-                .collect(Collectors.toList());
+            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
+            Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
+            Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
+            Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
+            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
+                    HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu"),
+            Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
+            Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage")
+        ).map(map -> new GenericMessage<>("", map)).toList();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Flux<WebSocketMessage>> argument = ArgumentCaptor.forClass(Flux.class);
@@ -219,7 +205,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
                             && (filterElementUuid == null || filterElementUuid.equals(directoryUuid) || filterElementUuid.equals(elementUuid));
                 })
                 .map(GenericMessage::getHeaders)
-                .map(this::toResultHeader)
+                .map(DirectoryNotificationWebSocketHandlerTest::toResultHeader)
                 .collect(Collectors.toList());
 
         List<Map<String, Object>> actual = messages.stream().map(t -> {
@@ -233,7 +219,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
         assertNotEquals(0, actual.size());
     }
 
-    private Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
+    private static Map<String, Object> toResultHeader(Map<String, Object> messageHeader) {
         var resHeader = new HashMap<String, Object>();
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
@@ -265,47 +251,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWithoutFilterInBody() {
-        withFilters(null, null, false);
-    }
-
-    @Test
-    public void testWithoutFilterInUrl() {
-        withFilters(null, null, true);
-    }
-
-    @Test
-    public void testTypeFilterInBody() {
-        withFilters("rab", null, false);
-    }
-
-    @Test
-    public void testTypeFilterInUrl() {
-        withFilters("rab", null, true);
-    }
-
-    @Test
-    public void testEncodingCharactersInBody() {
-        withFilters("foobar", null, false);
-    }
-
-    @Test
-    public void testEncodingCharactersInUrl() {
-        withFilters("foobar", null, true);
-    }
-
-    @Test
-    public void testElementUuidFilterInBody() {
-        withFilters(null, ELEMENT_UUID, false);
-    }
-
-    @Test
-    public void testElementUuidFilterInUrl() {
-        withFilters(null, ELEMENT_UUID, true);
-    }
-
-    @Test
-    public void testHeartbeat() {
+    void testHeartbeat() {
         setUpUriComponentBuilder("userId");
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(null, 1);
@@ -320,7 +266,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWsReceiveFilters() throws JsonProcessingException {
+    void testWsReceiveFilters() throws Exception {
         setUpUriComponentBuilder("userId");
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -348,7 +294,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWsRemoveFilters() throws JsonProcessingException {
+    void testWsRemoveFilters() throws Exception {
         setUpUriComponentBuilder("userId");
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -377,7 +323,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWsReceiveEmptyFilters() throws JsonProcessingException {
+    void testWsReceiveEmptyFilters() throws Exception {
         setUpUriComponentBuilder("userId");
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -398,7 +344,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testWsReceiveUnprocessableFilter() {
+    void testWsReceiveUnprocessableFilter() {
         setUpUriComponentBuilder("userId");
         var dataBufferFactory = new DefaultDataBufferFactory();
 
@@ -416,7 +362,7 @@ public class DirectoryNotificationWebSocketHandlerTest {
     }
 
     @Test
-    public void testDiscard() {
+    void testDiscard() {
         setUpUriComponentBuilder("userId");
 
         var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(objectMapper, Integer.MAX_VALUE);
