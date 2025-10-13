@@ -179,7 +179,8 @@ class DirectoryNotificationWebSocketHandlerTest {
             Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
                     HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu", HEADER_IS_DIRECTORY_MOVING, "false"),
             Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
-            Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage")
+            Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"),
+            Map.of(HEADER_USER_ID, connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_CASE_UUID, "case-123-456", HEADER_EXPORT_UUID, "export-789-012")
         ).map(map -> new GenericMessage<>("", map)).toList();
 
         @SuppressWarnings("unchecked")
@@ -247,6 +248,15 @@ class DirectoryNotificationWebSocketHandlerTest {
         }
         if (messageHeader.get(HEADER_USER_MESSAGE) != null) {
             resHeader.put(HEADER_USER_MESSAGE, messageHeader.get(HEADER_USER_MESSAGE));
+        }
+        if (messageHeader.get(HEADER_USER_ID) != null) {
+            resHeader.put(HEADER_USER_ID, messageHeader.get(HEADER_USER_ID));
+        }
+        if (messageHeader.get(HEADER_CASE_UUID) != null) {
+            resHeader.put(HEADER_CASE_UUID, messageHeader.get(HEADER_CASE_UUID));
+        }
+        if (messageHeader.get(HEADER_EXPORT_UUID) != null) {
+            resHeader.put(HEADER_EXPORT_UUID, messageHeader.get(HEADER_EXPORT_UUID));
         }
         resHeader.remove(HEADER_TIMESTAMP);
 
