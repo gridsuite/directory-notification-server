@@ -69,7 +69,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String HEADER_IS_DIRECTORY_MOVING = "isDirectoryMoving";
     static final String HEADER_USER_MESSAGE = "userMessage";
     static final String HEADER_EXPORT_UUID = "exportUuid";
-    static final String HEADER_CASE_UUID = "caseUuid";
 
     private ObjectMapper jacksonObjectMapper;
 
@@ -160,9 +159,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
         if (messageHeader.get(HEADER_USER_ID) != null) {
             resHeader.put(HEADER_USER_ID, messageHeader.get(HEADER_USER_ID));
-        }
-        if (messageHeader.get(HEADER_CASE_UUID) != null) {
-            resHeader.put(HEADER_CASE_UUID, messageHeader.get(HEADER_CASE_UUID));
         }
         if (messageHeader.get(HEADER_EXPORT_UUID) != null) {
             resHeader.put(HEADER_EXPORT_UUID, messageHeader.get(HEADER_EXPORT_UUID));
