@@ -9,3 +9,7 @@ spring:
       bindings:
         consumeNotification-in-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}directory.update
+powsybl-ws:
+  autoconfigure:
+    base-exception-handler:
+      enable: false
