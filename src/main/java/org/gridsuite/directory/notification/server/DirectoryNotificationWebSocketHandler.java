@@ -57,16 +57,12 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String FILTER_ELEMENT_UUIDS = "elementUuids";
     static final String QUERY_ELEMENT_UUID = "elementUuid";
     static final String HEADER_USER_ID = "userId";
-    static final String HEADER_DIRECTORY_UUID = "directoryUuid";
-    static final String HEADER_OLD_DIRECTORY_UUID = "oldDirectoryUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
     static final String HEADER_UPDATE_TYPE = "updateType";
     static final String HEADER_TIMESTAMP = "timestamp";
     static final String HEADER_ERROR = "error";
-    static final String HEADER_ELEMENT_NAME = "elementName";
-    static final String HEADER_ELEMENTS_LIST = "elementsList";
-    static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
-    static final String HEADER_OLD_IS_ROOT_DIRECTORY = "oldIsRootDirectory";
+    static final String HEADER_ELEMENT_NAMES = "elementNames";
+    static final String HEADER_DIRECTORIES_INFOS = "directoriesInfos";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
     static final String HEADER_IS_DIRECTORY_MOVING = "isDirectoryMoving";
@@ -119,7 +115,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID)) || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
+            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
@@ -136,29 +132,17 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
 
-        if (messageHeader.get(HEADER_DIRECTORY_UUID) != null) {
-            resHeader.put(HEADER_DIRECTORY_UUID, messageHeader.get(HEADER_DIRECTORY_UUID));
-        }
-        if (messageHeader.get(HEADER_OLD_DIRECTORY_UUID) != null) {
-            resHeader.put(HEADER_OLD_DIRECTORY_UUID, messageHeader.get(HEADER_OLD_DIRECTORY_UUID));
-        }
         if (messageHeader.get(HEADER_ERROR) != null) {
             resHeader.put(HEADER_ERROR, messageHeader.get(HEADER_ERROR));
-        }
-        if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
-            resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
-        }
-        if (messageHeader.get(HEADER_OLD_IS_ROOT_DIRECTORY) != null) {
-            resHeader.put(HEADER_OLD_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_OLD_IS_ROOT_DIRECTORY));
         }
         if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
             resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
         }
-        if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
-            resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
+        if (messageHeader.get(HEADER_ELEMENT_NAMES) != null) {
+            resHeader.put(HEADER_ELEMENT_NAMES, messageHeader.get(HEADER_ELEMENT_NAMES));
         }
-        if (messageHeader.get(HEADER_ELEMENTS_LIST) != null) {
-            resHeader.put(HEADER_ELEMENTS_LIST, messageHeader.get(HEADER_ELEMENTS_LIST));
+        if (messageHeader.get(HEADER_DIRECTORIES_INFOS) != null) {
+            resHeader.put(HEADER_DIRECTORIES_INFOS, messageHeader.get(HEADER_DIRECTORIES_INFOS));
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));

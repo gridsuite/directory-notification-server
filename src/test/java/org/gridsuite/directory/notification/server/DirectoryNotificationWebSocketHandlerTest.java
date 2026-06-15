@@ -168,16 +168,7 @@ class DirectoryNotificationWebSocketHandlerTest {
             Map.of(HEADER_UPDATE_TYPE, "oof"),
             Map.of(HEADER_UPDATE_TYPE, "oof"),
             Map.of(HEADER_UPDATE_TYPE, "oof"),
-
             Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
-
-            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
-            Map.of(HEADER_DIRECTORY_UUID, "public_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "titi"),
-            Map.of(HEADER_DIRECTORY_UUID, "private_" + connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAME, "toto"),
-            Map.of(HEADER_DIRECTORY_UUID, "private_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-            Map.of(HEADER_DIRECTORY_UUID, "public_" + otherUserId, HEADER_UPDATE_TYPE, "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                    HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_IS_ROOT_DIRECTORY, "false", HEADER_ELEMENT_NAME, "tutu", HEADER_IS_DIRECTORY_MOVING, "false"),
             Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
             Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"),
             Map.of(HEADER_USER_ID, connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_EXPORT_UUID, ELEMENT_UUID)
@@ -196,14 +187,13 @@ class DirectoryNotificationWebSocketHandlerTest {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
                     String elementUuid = (String) m.getHeaders().get(HEADER_ELEMENT_UUID);
-                    String directoryUuid = (String) m.getHeaders().get(HEADER_DIRECTORY_UUID);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
                         return false;
                     }
                     return (connectedUserId.equals(userId) || headerIsPublicDirectory != null && headerIsPublicDirectory)
                             && (filterUpdateType == null || filterUpdateType.equals(updateType))
-                            && (filterElementUuid == null || filterElementUuid.equals(directoryUuid) || filterElementUuid.equals(elementUuid));
+                            && (filterElementUuid == null || filterElementUuid.equals(elementUuid));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(DirectoryNotificationWebSocketHandlerTest::toResultHeader)
@@ -225,20 +215,15 @@ class DirectoryNotificationWebSocketHandlerTest {
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
 
-        if (messageHeader.get(HEADER_DIRECTORY_UUID) != null) {
-            resHeader.put(HEADER_DIRECTORY_UUID, messageHeader.get(HEADER_DIRECTORY_UUID));
-        }
+
         if (messageHeader.get(HEADER_ERROR) != null) {
             resHeader.put(HEADER_ERROR, messageHeader.get(HEADER_ERROR));
-        }
-        if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
-            resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
         }
         if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
             resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
         }
-        if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
-            resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
+        if (messageHeader.get(HEADER_ELEMENT_NAMES) != null) {
+            resHeader.put(HEADER_ELEMENT_NAMES, messageHeader.get(HEADER_ELEMENT_NAMES));
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
