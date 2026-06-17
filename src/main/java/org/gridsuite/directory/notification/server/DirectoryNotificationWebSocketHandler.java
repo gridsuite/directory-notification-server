@@ -115,7 +115,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
+            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
+                || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
