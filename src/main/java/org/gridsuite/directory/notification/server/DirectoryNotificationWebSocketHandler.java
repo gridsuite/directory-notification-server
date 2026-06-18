@@ -93,6 +93,26 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         };
     }
 
+    private boolean matchesAnyDirectoryInfoUuid(Set<String> filterElementUuids, Object directoriesInfos) {
+        if (directoriesInfos == null) {
+            return false;
+        }
+
+        String rawDirectoriesInfos = directoriesInfos.toString();
+        if (filterElementUuids.contains(rawDirectoriesInfos)) {
+            return true;
+        }
+
+        try {
+            return jacksonObjectMapper.readTree(rawDirectoriesInfos)
+                .findValuesAsText("uuid")
+                .stream()
+                .anyMatch(filterElementUuids::contains);
+        } catch (JsonProcessingException e) {
+            return false;
+        }
+    }
+
     /**
      * map from the broker flux to the filtered flux for one websocket client, extracting only relevant fields.
      */
@@ -115,7 +135,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
+            return filterElementUuid == null || matchesAnyDirectoryInfoUuid(filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
                 || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {

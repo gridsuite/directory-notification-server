@@ -234,6 +234,9 @@ class DirectoryNotificationWebSocketHandlerTest {
         if (messageHeader.get(HEADER_ELEMENT_NAMES) != null) {
             resHeader.put(HEADER_ELEMENT_NAMES, messageHeader.get(HEADER_ELEMENT_NAMES));
         }
+        if (messageHeader.get(HEADER_DIRECTORIES_INFOS) != null) {
+            resHeader.put(HEADER_DIRECTORIES_INFOS, messageHeader.get(HEADER_DIRECTORIES_INFOS));
+        }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
         }
