@@ -7,7 +7,9 @@
 package org.gridsuite.directory.notification.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.directory.notification.server.dto.DirectoryInfos;
 import org.gridsuite.directory.notification.server.dto.Filters;
 import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
@@ -30,8 +32,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -98,15 +102,19 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return false;
         }
 
-        String rawDirectoriesInfos = directoriesInfos.toString();
-        if (filterElementUuids.contains(rawDirectoriesInfos)) {
+        String directoriesInfosJson = directoriesInfos.toString();
+        if (filterElementUuids.contains(directoriesInfosJson)) {
             return true;
         }
 
         try {
-            return jacksonObjectMapper.readTree(rawDirectoriesInfos)
-                .findValuesAsText("uuid")
-                .stream()
+            List<DirectoryInfos> directories = jacksonObjectMapper.readValue(directoriesInfosJson,
+                new TypeReference<List<DirectoryInfos>>() { }
+            );
+
+            return directories.stream()
+                .map(DirectoryInfos::uuid)
+                .map(UUID::toString)
                 .anyMatch(filterElementUuids::contains);
         } catch (JsonProcessingException e) {
             return false;
