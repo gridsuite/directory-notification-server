@@ -98,7 +98,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         };
     }
 
-    private boolean matchesAnyDirectoryInfoUuid(Set<String> filterElementUuids, Object directoriesInfos) {
+    public static boolean matchesAnyDirectoryInfoUuid(ObjectMapper objectMapper, Set<String> filterElementUuids, Object directoriesInfos) {
         if (directoriesInfos == null) {
             return false;
         }
@@ -110,7 +110,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
 
         try {
-            List<DirectoryInfos> directories = jacksonObjectMapper.readValue(directoriesInfosJson,
+            List<DirectoryInfos> directories = objectMapper.readValue(directoriesInfosJson,
                 new TypeReference<List<DirectoryInfos>>() { }
             );
 
@@ -145,8 +145,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID))
-                || matchesAnyDirectoryInfoUuid(filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS));
+            return filterElementUuid == null || matchesAnyDirectoryInfoUuid(jacksonObjectMapper, filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
+                || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(

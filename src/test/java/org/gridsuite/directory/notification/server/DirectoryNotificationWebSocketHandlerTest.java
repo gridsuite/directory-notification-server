@@ -9,6 +9,7 @@ package org.gridsuite.directory.notification.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import org.gridsuite.directory.notification.server.dto.DirectoryInfos;
 import org.gridsuite.directory.notification.server.dto.Filters;
 import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
@@ -38,7 +39,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler.*;
@@ -129,7 +129,7 @@ class DirectoryNotificationWebSocketHandlerTest {
         "null, " + ELEMENT_UUID + ", true",  //testElementUuidFilterInUrl
     }, nullValues = {"null"})
     @ParameterizedTest(name = "inUrl={2} filter({0}) filterUuid({1})")
-    void testWithFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) {
+    void testWithFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) throws JsonProcessingException {
         String connectedUserId = "userId";
         String otherUserId = "userId2";
 
@@ -170,20 +170,29 @@ class DirectoryNotificationWebSocketHandlerTest {
             Map.of(HEADER_UPDATE_TYPE, "oof"),
             Map.of(HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true),
 
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"public_" + otherUserId + "\",\"isRoot\":true}]",
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), true))),
                 HEADER_UPDATE_TYPE, "foobar", HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ERROR, "error_message"),
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"public_" + connectedUserId + "\",\"isRoot\":true}]", HEADER_UPDATE_TYPE,
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), true))), HEADER_UPDATE_TYPE,
                 "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAMES, List.of("titi")),
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"private_" + connectedUserId + "\",\"isRoot\":false}]", HEADER_UPDATE_TYPE,
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), false))), HEADER_UPDATE_TYPE,
                 "oof", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"public_" + otherUserId + "\",\"isRoot\":true}]", HEADER_UPDATE_TYPE,
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), true))), HEADER_UPDATE_TYPE,
                 "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true, HEADER_ELEMENT_NAMES, List.of("toto")),
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"private_" + otherUserId + "\",\"isRoot\":false}]", HEADER_UPDATE_TYPE,
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), false))), HEADER_UPDATE_TYPE,
                 "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, false),
-            Map.of(HEADER_DIRECTORIES_INFOS, "[{\"uuid\":\"public_" + otherUserId + "\",\"isRoot\":false}]", HEADER_UPDATE_TYPE,
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), false))), HEADER_UPDATE_TYPE,
                 "rab", HEADER_USER_ID, otherUserId, HEADER_IS_PUBLIC_DIRECTORY, true,
-                HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_ELEMENT_NAMES, List.of("tutu"), HEADER_IS_DIRECTORY_MOVING, false),
-            Map.of(HEADER_DIRECTORIES_INFOS, ELEMENT_UUID, HEADER_UPDATE_TYPE, "directories", HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
+                HEADER_ERROR, "error_message", HEADER_NOTIFICATION_TYPE, "UPDATE_DIRECTORY", HEADER_ELEMENT_NAMES, List.of("tutu"),
+                HEADER_IS_DIRECTORY_MOVING, false),
+            Map.of(HEADER_DIRECTORIES_INFOS, objectMapper.writeValueAsString(
+                List.of(new DirectoryInfos(UUID.fromString(ELEMENT_UUID), false))), HEADER_UPDATE_TYPE, "directories",
+                HEADER_USER_ID, connectedUserId, HEADER_IS_PUBLIC_DIRECTORY, true),
             Map.of(HEADER_ELEMENT_UUID, ELEMENT_UUID, HEADER_USER_ID, connectedUserId),
             Map.of(HEADER_USER_ID, connectedUserId, HEADER_USER_MESSAGE, "testMessage"),
             Map.of(HEADER_USER_ID, connectedUserId, HEADER_UPDATE_TYPE, "oof", HEADER_EXPORT_UUID, ELEMENT_UUID)
@@ -202,18 +211,20 @@ class DirectoryNotificationWebSocketHandlerTest {
                     String userId = (String) m.getHeaders().get(HEADER_USER_ID);
                     String updateType = (String) m.getHeaders().get(HEADER_UPDATE_TYPE);
                     String elementUuid = (String) m.getHeaders().get(HEADER_ELEMENT_UUID);
-                    String directoriesInfos = (String) m.getHeaders().get(HEADER_DIRECTORIES_INFOS);
+                    String directoriesInfosObj = (String) m.getHeaders().get(HEADER_DIRECTORIES_INFOS);
                     Boolean headerIsPublicDirectory = m.getHeaders().get(HEADER_IS_PUBLIC_DIRECTORY, Boolean.class);
                     if (m.getHeaders().get(HEADER_ERROR) != null && !connectedUserId.equals(userId)) {
                         return false;
                     }
                     return (connectedUserId.equals(userId) || headerIsPublicDirectory != null && headerIsPublicDirectory)
                             && (filterUpdateType == null || filterUpdateType.equals(updateType))
-                            && (filterElementUuid == null || filterElementUuid.equals(directoriesInfos) || filterElementUuid.equals(elementUuid));
+                            && (filterElementUuid == null
+                        || matchesAnyDirectoryInfoUuid(objectMapper, Set.of(filterElementUuid), directoriesInfosObj)
+                        || filterElementUuid.equals(elementUuid));
                 })
                 .map(GenericMessage::getHeaders)
                 .map(DirectoryNotificationWebSocketHandlerTest::toResultHeader)
-                .collect(Collectors.toList());
+                .toList();
 
         List<Map<String, Object>> actual = messages.stream().map(t -> {
             try {
@@ -221,7 +232,7 @@ class DirectoryNotificationWebSocketHandlerTest {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-        }).collect(Collectors.toList());
+        }).toList();
         assertEquals(expected, actual);
         assertNotEquals(0, actual.size());
     }
