@@ -28,6 +28,7 @@ import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
@@ -114,7 +115,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                 .map(UUID::toString)
                 .anyMatch(filterElementUuids::contains);
         } catch (JsonProcessingException e) {
-            return filterElementUuids.contains(directoriesInfosJson);
+            throw new UncheckedIOException(e);
         }
     }
 

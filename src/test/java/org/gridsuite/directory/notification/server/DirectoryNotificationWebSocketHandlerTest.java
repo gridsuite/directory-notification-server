@@ -125,8 +125,6 @@ class DirectoryNotificationWebSocketHandlerTest {
         "rab, null, true",  //testTypeFilterInUrl
         "foobar, null, false", //testEncodingCharactersInBody
         "foobar, null, true",  //testEncodingCharactersInUrl
-        "null, " + ELEMENT_UUID + ", false", //testElementUuidFilterInBody
-        "null, " + ELEMENT_UUID + ", true",  //testElementUuidFilterInUrl
     }, nullValues = {"null"})
     @ParameterizedTest(name = "inUrl={2} filter({0}) filterUuid({1})")
     void testWithFilters(String filterUpdateType, String filterElementUuid, boolean inUrl) {
