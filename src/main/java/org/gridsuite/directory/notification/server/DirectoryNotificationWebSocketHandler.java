@@ -105,6 +105,10 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
 
         String directoriesInfosJson = directoriesInfos.toString();
 
+        if (directoriesInfosJson.isEmpty()) {
+            return false;
+        }
+
         try {
             List<DirectoryInfos> directories = jacksonObjectMapper.readValue(directoriesInfosJson,
                 new TypeReference<List<DirectoryInfos>>() { }
