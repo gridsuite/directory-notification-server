@@ -103,9 +103,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         }
 
         String directoriesInfosJson = directoriesInfos.toString();
-        if (filterElementUuids.contains(directoriesInfosJson)) {
-            return true;
-        }
 
         try {
             List<DirectoryInfos> directories = jacksonObjectMapper.readValue(directoriesInfosJson,
@@ -117,7 +114,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                 .map(UUID::toString)
                 .anyMatch(filterElementUuids::contains);
         } catch (JsonProcessingException e) {
-            return false;
+            return filterElementUuids.contains(directoriesInfosJson);
         }
     }
 
@@ -143,8 +140,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || matchesAnyDirectoryInfoUuid(filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
-                || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
+            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID))
+                || matchesAnyDirectoryInfoUuid(filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
