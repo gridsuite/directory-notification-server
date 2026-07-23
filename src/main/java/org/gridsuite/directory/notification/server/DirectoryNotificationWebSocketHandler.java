@@ -7,7 +7,9 @@
 package org.gridsuite.directory.notification.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.directory.notification.server.dto.DirectoryInfos;
 import org.gridsuite.directory.notification.server.dto.Filters;
 import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
 import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
@@ -26,12 +28,15 @@ import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -57,13 +62,12 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String FILTER_ELEMENT_UUIDS = "elementUuids";
     static final String QUERY_ELEMENT_UUID = "elementUuid";
     static final String HEADER_USER_ID = "userId";
-    static final String HEADER_DIRECTORY_UUID = "directoryUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
     static final String HEADER_UPDATE_TYPE = "updateType";
     static final String HEADER_TIMESTAMP = "timestamp";
     static final String HEADER_ERROR = "error";
-    static final String HEADER_ELEMENT_NAME = "elementName";
-    static final String HEADER_IS_ROOT_DIRECTORY = "isRootDirectory";
+    static final String HEADER_ELEMENT_NAMES = "elementNames";
+    static final String HEADER_DIRECTORIES_INFOS = "directoriesInfos";
     static final String HEADER_NOTIFICATION_TYPE = "notificationType";
     static final String HEADER_ELEMENT_UUID = "elementUuid";
     static final String HEADER_IS_DIRECTORY_MOVING = "isDirectoryMoving";
@@ -94,6 +98,31 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         };
     }
 
+    public static boolean matchesAnyDirectoryInfoUuid(ObjectMapper objectMapper, Set<String> filterElementUuids, Object directoriesInfos) {
+        if (directoriesInfos == null) {
+            return false;
+        }
+
+        String directoriesInfosJson = directoriesInfos.toString();
+
+        if (directoriesInfosJson.isEmpty()) {
+            return false;
+        }
+
+        try {
+            List<DirectoryInfos> directories = objectMapper.readValue(directoriesInfosJson,
+                new TypeReference<List<DirectoryInfos>>() { }
+            );
+
+            return directories.stream()
+                .map(DirectoryInfos::uuid)
+                .map(UUID::toString)
+                .anyMatch(filterElementUuids::contains);
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     /**
      * map from the broker flux to the filtered flux for one websocket client, extracting only relevant fields.
      */
@@ -116,8 +145,8 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
             return !(filterUpdateType != null && !filterUpdateType.equals(message.getHeaders().get(HEADER_UPDATE_TYPE)));
         }).filter(message -> {
             Set<String> filterElementUuid = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-            return filterElementUuid == null || filterElementUuid.contains(message.getHeaders().get(HEADER_DIRECTORY_UUID))
-                    || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
+            return filterElementUuid == null || matchesAnyDirectoryInfoUuid(jacksonObjectMapper, filterElementUuid, message.getHeaders().get(HEADER_DIRECTORIES_INFOS))
+                || filterElementUuid.contains(message.getHeaders().get(HEADER_ELEMENT_UUID));
         }).map(m -> {
             try {
                 return jacksonObjectMapper.writeValueAsString(Map.of(
@@ -134,20 +163,17 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         resHeader.put(HEADER_TIMESTAMP, messageHeader.get(HEADER_TIMESTAMP));
         resHeader.put(HEADER_UPDATE_TYPE, messageHeader.get(HEADER_UPDATE_TYPE));
 
-        if (messageHeader.get(HEADER_DIRECTORY_UUID) != null) {
-            resHeader.put(HEADER_DIRECTORY_UUID, messageHeader.get(HEADER_DIRECTORY_UUID));
-        }
         if (messageHeader.get(HEADER_ERROR) != null) {
             resHeader.put(HEADER_ERROR, messageHeader.get(HEADER_ERROR));
-        }
-        if (messageHeader.get(HEADER_IS_ROOT_DIRECTORY) != null) {
-            resHeader.put(HEADER_IS_ROOT_DIRECTORY, messageHeader.get(HEADER_IS_ROOT_DIRECTORY));
         }
         if (messageHeader.get(HEADER_NOTIFICATION_TYPE) != null) {
             resHeader.put(HEADER_NOTIFICATION_TYPE, messageHeader.get(HEADER_NOTIFICATION_TYPE));
         }
-        if (messageHeader.get(HEADER_ELEMENT_NAME) != null) {
-            resHeader.put(HEADER_ELEMENT_NAME, messageHeader.get(HEADER_ELEMENT_NAME));
+        if (messageHeader.get(HEADER_ELEMENT_NAMES) != null) {
+            resHeader.put(HEADER_ELEMENT_NAMES, messageHeader.get(HEADER_ELEMENT_NAMES));
+        }
+        if (messageHeader.get(HEADER_DIRECTORIES_INFOS) != null) {
+            resHeader.put(HEADER_DIRECTORIES_INFOS, messageHeader.get(HEADER_DIRECTORIES_INFOS));
         }
         if (messageHeader.get(HEADER_ELEMENT_UUID) != null) {
             resHeader.put(HEADER_ELEMENT_UUID, messageHeader.get(HEADER_ELEMENT_UUID));
