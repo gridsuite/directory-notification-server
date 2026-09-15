@@ -83,6 +83,11 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         this.heartbeatInterval = heartbeatInterval;
     }
 
+    @Override
+    public List<String> getSubProtocols() {
+        return List.of("token");
+    }
+
     Flux<Message<String>> flux;
 
     @Bean
