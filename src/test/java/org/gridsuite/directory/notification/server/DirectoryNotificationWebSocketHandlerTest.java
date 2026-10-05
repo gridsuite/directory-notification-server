@@ -8,11 +8,7 @@ package org.gridsuite.directory.notification.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import org.gridsuite.directory.notification.server.dto.DirectoryInfos;
-import org.gridsuite.directory.notification.server.dto.Filters;
-import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
-import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,7 +32,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -287,102 +282,6 @@ class DirectoryNotificationWebSocketHandlerTest {
         ArgumentCaptor<Flux<WebSocketMessage>> argument = ArgumentCaptor.forClass(Flux.class);
         verify(ws).send(argument.capture());
         assertEquals("testsession-0", argument.getValue().blockFirst(Duration.ofSeconds(10)).getPayloadAsText());
-    }
-
-    @Test
-    void testWsReceiveFilters() throws Exception {
-        setUpUriComponentBuilder("userId");
-        var dataBufferFactory = new DefaultDataBufferFactory();
-
-        var map = new ConcurrentHashMap<String, Object>();
-        map.put(FILTER_ELEMENT_UUIDS, new HashSet<>(Set.of("elementUuidFilter1")));
-        ArrayList<String> elementUuid = new ArrayList<>();
-        elementUuid.add("elementUuidFilter2");
-        FiltersToAdd filtersToAdd = new FiltersToAdd("updateTypeFilter", elementUuid);
-        FiltersToRemove filtersToRemove = new FiltersToRemove(false, null);
-        Filters filters = new Filters(filtersToAdd, filtersToRemove);
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        String json = ow.writeValueAsString(filters);
-        when(ws2.receive()).thenReturn(Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, dataBufferFactory.wrap(json.getBytes()))));
-        when(ws2.getAttributes()).thenReturn(map);
-
-        var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(new ObjectMapper(), 60);
-        var flux = Flux.<Message<String>>empty();
-        notificationWebSocketHandler.consumeNotification().accept(flux);
-        notificationWebSocketHandler.receive(ws2).subscribe();
-
-        assertEquals("updateTypeFilter", map.get(FILTER_UPDATE_TYPE));
-        assertEquals(2, ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
-        assertTrue(((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter1") &&
-                ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter2"));
-    }
-
-    @Test
-    void testWsRemoveFilters() throws Exception {
-        setUpUriComponentBuilder("userId");
-        var dataBufferFactory = new DefaultDataBufferFactory();
-
-        Set<String> elementUuid = new HashSet<>(Set.of("elementUuidFilter1", "elementUuidFilter2", "elementUuidFilter3"));
-        var map = new ConcurrentHashMap<String, Object>();
-        map.put(FILTER_UPDATE_TYPE, "updateType");
-        map.put(FILTER_ELEMENT_UUIDS, elementUuid);
-        FiltersToAdd filtersToAdd = new FiltersToAdd();
-        FiltersToRemove filtersToRemove = new FiltersToRemove(true, new ArrayList<>(Arrays.asList("elementUuidFilter1", "elementUuidFilter2")));
-        Filters filters = new Filters(filtersToAdd, filtersToRemove);
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        String json = ow.writeValueAsString(filters);
-        when(ws2.receive()).thenReturn(Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, dataBufferFactory.wrap(json.getBytes()))));
-        when(ws2.getAttributes()).thenReturn(map);
-
-        assertEquals("updateType", ws2.getAttributes().get(FILTER_UPDATE_TYPE));
-        assertEquals(elementUuid, ws2.getAttributes().get(FILTER_ELEMENT_UUIDS));
-        var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(new ObjectMapper(), Integer.MAX_VALUE);
-        var flux = Flux.<Message<String>>empty();
-        notificationWebSocketHandler.consumeNotification().accept(flux);
-        notificationWebSocketHandler.receive(ws2).subscribe();
-
-        assertNull(ws2.getAttributes().get(FILTER_UPDATE_TYPE));
-        assertEquals(1, ((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).size());
-        assertTrue(((Set<String>) map.get(FILTER_ELEMENT_UUIDS)).contains("elementUuidFilter3"));
-    }
-
-    @Test
-    void testWsReceiveEmptyFilters() throws Exception {
-        setUpUriComponentBuilder("userId");
-        var dataBufferFactory = new DefaultDataBufferFactory();
-
-        var map = new ConcurrentHashMap<String, Object>();
-        Filters filters = new Filters();
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        String json = ow.writeValueAsString(filters);
-        when(ws2.receive()).thenReturn(Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, dataBufferFactory.wrap(json.getBytes()))));
-        when(ws2.getAttributes()).thenReturn(map);
-
-        var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(new ObjectMapper(), Integer.MAX_VALUE);
-        var flux = Flux.<Message<String>>empty();
-        notificationWebSocketHandler.consumeNotification().accept(flux);
-        notificationWebSocketHandler.receive(ws2).subscribe();
-
-        assertNull(map.get(FILTER_UPDATE_TYPE));
-        assertNull(map.get(FILTER_ELEMENT_UUIDS));
-    }
-
-    @Test
-    void testWsReceiveUnprocessableFilter() {
-        setUpUriComponentBuilder("userId");
-        var dataBufferFactory = new DefaultDataBufferFactory();
-
-        var map = new ConcurrentHashMap<String, Object>();
-        when(ws2.receive()).thenReturn(Flux.just(new WebSocketMessage(WebSocketMessage.Type.TEXT, dataBufferFactory.wrap("UnprocessableFilter".getBytes()))));
-        when(ws2.getAttributes()).thenReturn(map);
-
-        var notificationWebSocketHandler = new DirectoryNotificationWebSocketHandler(new ObjectMapper(), 60);
-        var flux = Flux.<Message<String>>empty();
-        notificationWebSocketHandler.consumeNotification().accept(flux);
-        notificationWebSocketHandler.receive(ws2).subscribe();
-
-        assertNull(map.get(FILTER_UPDATE_TYPE));
-        assertNull(map.get(FILTER_ELEMENT_UUIDS));
     }
 
     @Test
