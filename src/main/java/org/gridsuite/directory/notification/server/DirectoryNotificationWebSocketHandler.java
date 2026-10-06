@@ -10,9 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gridsuite.directory.notification.server.dto.DirectoryInfos;
-import org.gridsuite.directory.notification.server.dto.Filters;
-import org.gridsuite.directory.notification.server.dto.FiltersToAdd;
-import org.gridsuite.directory.notification.server.dto.FiltersToRemove;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -201,49 +198,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
                 .pingMessage(dbf -> dbf.wrap((webSocketSession.getId() + "-" + n).getBytes(StandardCharsets.UTF_8))));
     }
 
-    public Flux<WebSocketMessage> receive(WebSocketSession webSocketSession) {
-        return webSocketSession.receive()
-                .doOnNext(webSocketMessage -> {
-                    try {
-                        //if it's not the heartbeat
-                        if (webSocketMessage.getType().equals(WebSocketMessage.Type.TEXT)) {
-                            String wsPayload = webSocketMessage.getPayloadAsText();
-                            LOGGER.debug("Message received : {} by session {}", wsPayload, webSocketSession.getId());
-                            Filters receivedFilters = jacksonObjectMapper.readValue(webSocketMessage.getPayloadAsText(), Filters.class);
-                            handleReceivedFilters(webSocketSession, receivedFilters);
-                        }
-                    } catch (JsonProcessingException e) {
-                        LOGGER.error(e.toString());
-                    }
-                });
-    }
-
-    private void handleReceivedFilters(WebSocketSession webSocketSession, Filters filters) {
-        if (filters.getFiltersToRemove() != null) {
-            FiltersToRemove filtersToRemove = filters.getFiltersToRemove();
-            if (Boolean.TRUE.equals(filtersToRemove.getRemoveUpdateType())) {
-                webSocketSession.getAttributes().remove(FILTER_UPDATE_TYPE);
-            }
-            if (filtersToRemove.getRemoveElementUuids() != null) {
-                Set<String> elementUuids = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-                filtersToRemove.getRemoveElementUuids().forEach(elementUuids::remove);
-                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, elementUuids);
-            }
-        }
-        if (filters.getFiltersToAdd() != null) {
-            FiltersToAdd filtersToAdd = filters.getFiltersToAdd();
-            //because null is not allowed in ConcurrentHashMap and will cause the websocket to close
-            if (filtersToAdd.getUpdateType() != null) {
-                webSocketSession.getAttributes().put(FILTER_UPDATE_TYPE, filtersToAdd.getUpdateType());
-            }
-            if (filtersToAdd.getElementUuids() != null) {
-                Set<String> elementUuids = (Set<String>) webSocketSession.getAttributes().get(FILTER_ELEMENT_UUIDS);
-                elementUuids.addAll(filters.getFiltersToAdd().getElementUuids());
-                webSocketSession.getAttributes().put(FILTER_ELEMENT_UUIDS, elementUuids);
-            }
-        }
-    }
-
     @Override
     public Mono<Void> handle(WebSocketSession webSocketSession) {
         var uri = webSocketSession.getHandshakeInfo().getUri();
@@ -261,6 +215,6 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
         return webSocketSession
                 .send(notificationFlux(webSocketSession, userId)
                         .mergeWith(heartbeatFlux(webSocketSession)))
-                .and(receive(webSocketSession));
+                .and(webSocketSession.receive());
     }
 }
