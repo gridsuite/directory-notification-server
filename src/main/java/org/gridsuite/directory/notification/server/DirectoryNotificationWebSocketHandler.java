@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -37,6 +38,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
+import static com.powsybl.ws.commons.security.AuthorizationSystemConstants.HEADER_USER_ID;
+
 /**
  * A WebSocketHandler that sends messages from a broker to websockets opened by clients, interleaving with pings to keep connections open.
  * <p>
@@ -57,8 +60,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     static final String FILTER_UPDATE_TYPE = "updateType";
     static final String QUERY_UPDATE_TYPE = FILTER_UPDATE_TYPE;
     static final String FILTER_ELEMENT_UUIDS = "elementUuids";
-    static final String QUERY_ELEMENT_UUID = "elementUuid";
-    static final String HEADER_USER_ID = "userId";
+    public static final String QUERY_ELEMENT_UUID = "elementUuid";
     static final String HEADER_IS_PUBLIC_DIRECTORY = "isPublicDirectory";
     static final String HEADER_UPDATE_TYPE = "updateType";
     static final String HEADER_TIMESTAMP = "timestamp";
@@ -199,6 +201,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     }
 
     @Override
+    @PreAuthorize("@authorizationService.canRead(#webSocketSession, T(org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler).QUERY_ELEMENT_UUID)")
     public Mono<Void> handle(WebSocketSession webSocketSession) {
         var uri = webSocketSession.getHandshakeInfo().getUri();
         String userId = webSocketSession.getHandshakeInfo().getHeaders().getFirst(HEADER_USER_ID);
