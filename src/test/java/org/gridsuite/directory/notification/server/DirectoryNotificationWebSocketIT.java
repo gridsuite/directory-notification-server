@@ -6,7 +6,7 @@
  */
 package org.gridsuite.directory.notification.server;
 
-import com.powsybl.ws.commons.security.AllowAllAuthorizationTestConfiguration;
+import com.powsybl.ws.commons.security.AllowAllAuthTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * @author Jon Harper <jon.harper at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = { DirectoryNotificationApplication.class })
-@Import(AllowAllAuthorizationTestConfiguration.class)
+@Import(AllowAllAuthTestConfiguration.class)
 @DirtiesContext
 class DirectoryNotificationWebSocketIT {
 
