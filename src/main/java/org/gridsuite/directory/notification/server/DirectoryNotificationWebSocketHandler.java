@@ -201,7 +201,7 @@ public class DirectoryNotificationWebSocketHandler implements WebSocketHandler {
     }
 
     @Override
-    @PreAuthorize("@authorizationService.canRead(#webSocketSession, T(org.gridsuite.directory.notification.server.DirectoryNotificationWebSocketHandler).QUERY_ELEMENT_UUID)")
+    @PreAuthorize("true")
     public Mono<Void> handle(WebSocketSession webSocketSession) {
         var uri = webSocketSession.getHandshakeInfo().getUri();
         String userId = webSocketSession.getHandshakeInfo().getHeaders().getFirst(HEADER_USER_ID);
