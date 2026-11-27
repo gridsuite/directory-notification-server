@@ -4,3 +4,8 @@ server:
 spring:
   rabbitmq:
     addresses: localhost
+
+powsybl-ws:
+  autoconfigure:
+    authorization-system:
+      directory-server-base-uri: http://localhost:5026
